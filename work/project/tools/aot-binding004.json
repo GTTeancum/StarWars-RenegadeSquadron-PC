@@ -1,0 +1,1665 @@
+{
+  "format": "renegade-aot-binding-v1",
+  "compiler": "GNU",
+  "version": "14.2.0",
+  "target": "x86_64-linux-gnu",
+  "archive_sha256": "e82cb90a5c977ef8e8b946965f1d8f9e1932465bc1b7d3f8d5029b2f389d1d76",
+  "files": [
+    {
+      "path": "include/psprecomp/allegrex_context.hpp",
+      "sha256": "be9d83b759550608b756867882f3dff4975433ccd5bde1740a6efcf07b7fc867"
+    },
+    {
+      "path": "include/psprecomp/allegrex_extensions.hpp",
+      "sha256": "c889c5ab4fa02eb1410e22a7eda87a8c4836c679347a3ce125f36870cfd03128"
+    },
+    {
+      "path": "include/psprecomp/codegen_policy.hpp",
+      "sha256": "56bef5b5aca276657ccc139b744a691cddd355fbbb87633026ff14f705bb12b5"
+    },
+    {
+      "path": "include/psprecomp/common.hpp",
+      "sha256": "4db5bf85250af43014b322c4b4f6552c8095189b325d397aeab5556470596ff1"
+    },
+    {
+      "path": "include/psprecomp/decoder.hpp",
+      "sha256": "3774e090355ee99cab350242d07d6d9740991e8399af13dd1c1aa1a0471dd7ce"
+    },
+    {
+      "path": "include/psprecomp/deflate.hpp",
+      "sha256": "2e4cbb9fce4cdd32cdda09331e4b0094619f88100024d793ca9d6ffc50159c5f"
+    },
+    {
+      "path": "include/psprecomp/elf32.hpp",
+      "sha256": "958870a314c2856b0920595af6fabea9a6ef50ce0691e53ba4ba4e35793dd21a"
+    },
+    {
+      "path": "include/psprecomp/guest_memory.hpp",
+      "sha256": "1ee8a628479a6737e43fdf0f3469aaa67bf5a366f746cfadd6af474a3acab6ac"
+    },
+    {
+      "path": "include/psprecomp/nid_registry.hpp",
+      "sha256": "3d72204ede4798d1ac7710d3b601d5a6aef7beede77be295251534e7e359ffa9"
+    },
+    {
+      "path": "include/psprecomp/program_analysis.hpp",
+      "sha256": "d8c0dc190fb159bfd5229b261a79233513869101e1a0f015143bdebe9a915dd0"
+    },
+    {
+      "path": "include/psprecomp/runtime.hpp",
+      "sha256": "a84ddf2722fea33ff0d92e1962064c806991f6c18a6df1eafd614815c4a8c7d0"
+    },
+    {
+      "path": "include/psprecomp/sha256.hpp",
+      "sha256": "27091cd20f10377bba571a609588e8ffb1f7a58671ec1610119bf80567321755"
+    },
+    {
+      "path": "profiles/renegade/generated/auto_codegen_report.json",
+      "sha256": "ef159f57270b8fa1968eafd7f293cec9f10a3efebb4820c8f29766a9ea76a15c"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_registry.cpp",
+      "sha256": "2dd81930b4502ee7c28a96679013b8c18099c741d729bce2458d727421c3a0ea"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0000.cpp",
+      "sha256": "489bdd765c02906847df353d8c89d4937ac464d2a8e843cb67c77cee96d62896"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0001.cpp",
+      "sha256": "7f16c36279c8becc11f44a4c3c0cca96b36274f0a22c59707babdfaccb2d2ac4"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0002.cpp",
+      "sha256": "7cfd3e758ea56142950c5e2b9c18668cae8e95296dc78fe02a3957c150f2a3e8"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0003.cpp",
+      "sha256": "b21cd9f4922b33a7edfb16123e10bced94464fda71341ff67b8f2a9925d7f36b"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0004.cpp",
+      "sha256": "a283d4016caabbf43f8b16af3fc9adb1ffce3d32991313e7980ec323c4c20e9e"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0005.cpp",
+      "sha256": "ca17b4f6e6515315165088ef16012ef36ddccffcf8db00d3f3be2a9eea5a2dd7"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0006.cpp",
+      "sha256": "8ddd79d2e5ef81b62fbfa0eb8dfef8dfad1d921981f6f2a1bc5ebc7f5834b71c"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0007.cpp",
+      "sha256": "2cb89f6306b6e857bd5a3abe21f7e529b896cbe28c46a61855b8022e0ca0d1c4"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0008.cpp",
+      "sha256": "291f5c8f2f66b0f18fc220fe3d7d59a73d7262cca94f42d8a39dea78f7cc805e"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0009.cpp",
+      "sha256": "33c872dc6ec75262e94786979d89133e39df060c8c8c533a4f2df520bc5e5d34"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0010.cpp",
+      "sha256": "0ba0d0d989c7cb1894839aebd3f0874072ada2cc467cf444eddbe52c2978f314"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0011.cpp",
+      "sha256": "0dafc3cb65fbef3de42652753bb50da1ab9733ee35c8d7c40b24160efa3cebd6"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0012.cpp",
+      "sha256": "f68f6b5d4172f66b729595ff87684cd40d68ec7ab5078c1f303c80c4eaacdaf2"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0013.cpp",
+      "sha256": "52282ce0017c31cfa42f1b14db78c2a817ecd02d06646c8ed06af4f81d761b44"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0014.cpp",
+      "sha256": "26113ce032db17654789757f59765d76c797457d01a778d51e6fc0f60e35848d"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0015.cpp",
+      "sha256": "08ef11c09fc8b0256ac631f0871b3d0a09f9cb4cc98910b9da0fc6ac20c123a8"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0016.cpp",
+      "sha256": "11001e045321541fe4a32d0bddc47be67b6c50d983553c321da1a1723d1b5e76"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0017.cpp",
+      "sha256": "b04d7accd20c9bb9b94e75f818ee8f32176af3a809ef5f5588b26af8251e2767"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0018.cpp",
+      "sha256": "3bf45ec30b55759a580984f07e5361372efd7033c9a8f90d1336b89d02e04117"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0019.cpp",
+      "sha256": "b9ea99954917d4b021a7fe34af92422145b9497da8ac28bb178e95aa65a5b836"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0020.cpp",
+      "sha256": "586de25fc3cf1e11bbf8be3efa82c3c917094f780ba090f5627c361fe9fa56ff"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0021.cpp",
+      "sha256": "9eb5fa90bb031b655d81258e890b758ccb325c61f41c091a02d1a7cdd71c3d26"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0022.cpp",
+      "sha256": "9f9a314dfb0ab550b6360c62e452aeff45dd92ab855405b5dc9974301aac27c6"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0023.cpp",
+      "sha256": "84b59e697affec3fccfb465ce385eb343143e51101105b198e398bb1e9119180"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0024.cpp",
+      "sha256": "fd56695bd041797163b70d8418106918657df356bee7aa5a0462502f1573ce28"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0025.cpp",
+      "sha256": "e377795e536585646d6d0a7a0c2ef79da7e78bea7c767e2cda3fbe945c08b075"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0026.cpp",
+      "sha256": "021792f35913d903433c604383e702ad885737a8afc3025637f9233a7a2dcb58"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0027.cpp",
+      "sha256": "a390c6dd19001bfba22da79085457ec3a7756dd754c6ca57a4c7925513f9f42b"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0028.cpp",
+      "sha256": "a5c4f43bd936161df898783892b4d9888e2cc1ddf8bb2ac65a1e888042c63444"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0029.cpp",
+      "sha256": "8734225c27c74d7aca3393ed423e5cfff23e919a1f44ef73571f24813e9572e6"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0030.cpp",
+      "sha256": "70f55526a49f901981bab6dd4cfa330094921b188827e57c9c0efd92d605ee0a"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0031.cpp",
+      "sha256": "ec8c0d6488a691b5149a775273cf6ef01957a19220e79e86c966069e8defcaca"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0032.cpp",
+      "sha256": "63e8eb46f9fd05e3f4a63e43028f50f0aefc762f1ecd37352a8b43d2ba72a921"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0033.cpp",
+      "sha256": "d3640ff09aa680f3d49597080340e3dbf3ce1ab7dff96dfb26e518cb4fbb22de"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0034.cpp",
+      "sha256": "07c7d6226170ba73cc2e4d9ce71ef44dbaa771d2986342d619b7ec8bb2fad1b1"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0035.cpp",
+      "sha256": "1e02b34d53c8bd8b6046db172d1e3ea7315bc950bda0da0e749717b44305ef61"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0036.cpp",
+      "sha256": "97e84fa2dd9a910e5e5107402652b7aa0cb096d641c9561aedf9aeed9feee342"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0037.cpp",
+      "sha256": "d9ab69bac6abc8c5a3f2bdbab8ad8ea06d1a7393241e54926fb09ed3052fe478"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0038.cpp",
+      "sha256": "ff29fbd578815b15ea7738115205b635284f7de2b37d4a06c902f7f13737e104"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0039.cpp",
+      "sha256": "5dfb9a29262b9b13c5acecf87d73bdaff9d7011da20e01eea33ad7f6898fd405"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0040.cpp",
+      "sha256": "953cf75f0972ac653c676d225b02c8eddeaa015938ab3417d328d536e6870e47"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0041.cpp",
+      "sha256": "97ef698a3ca2c13f3dd44bd238ae737c20ebdf5c50ae83330eedb50ae3e2dcd8"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0042.cpp",
+      "sha256": "4a44e03fba4216a05070432e8cae3d8fde2de1b0ad9879d3183b1f4b1a0307bb"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0043.cpp",
+      "sha256": "40738ec27e53184701cc1fcf95fe3b9eb7e103d1d308357641a8b3b9e14ba078"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0044.cpp",
+      "sha256": "a989a1036bfcbdd8355b62af5430c816ebf01b1e70b2b9680ddcac0a15bc0362"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0045.cpp",
+      "sha256": "d8940cc58d395c8b1f8ca756139609584cf568d35059c4b645d2f49581d3fffa"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0046.cpp",
+      "sha256": "307fd75d32dc80cc17cdfa9b881d500ae6815ee03885300f3e5e3bb66799e660"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0047.cpp",
+      "sha256": "54bd5dcf29e1957ef43b700f5f3d39b54f38ab0ea36c785fb660a99bf28312a5"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0048.cpp",
+      "sha256": "d83f085b5e6bd71e1e211cc898dc27be4a71f3df2380020fd422ac5bdebde744"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0049.cpp",
+      "sha256": "a76fd980b3c6d4bf9c0d73c8e9ad3573c93c6c5739e7dd23a33e3c60337a0426"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0050.cpp",
+      "sha256": "b0abd14201047009933b6add2690d6f93cbe74c142d9c053fb8c24e7f93a9ca0"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0051.cpp",
+      "sha256": "12481aa7c32fbbcfdfdbc7b7d528d0b520d6bb284fe7abab1fc055091e0dd720"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0052.cpp",
+      "sha256": "81a0fa0172310a64b90cf114b25790103c509608d15e27ec1b45a4d0f1813c48"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0053.cpp",
+      "sha256": "b8aae38f0871ef187e79972e9ffe8b55d0ce10742f0dbc0a06a1ce3b917bf762"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0054.cpp",
+      "sha256": "feac9810e12de10401cb1301ff161b70b6227b3750dda275907bdac7b290028b"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0055.cpp",
+      "sha256": "d0fc42b49f01763b181528e5f73d5fbcb76f40663a0d51470e0cb4beb29d8dff"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0056.cpp",
+      "sha256": "ba12d4296267df4cee3c22331a0117c57279600ba1e2ac250dbaf92fca971fc0"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0057.cpp",
+      "sha256": "8068cd8dfeae9d616af1fdc20655a1de35b0cd5c424f61b8cc65b0e7730e5fc6"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0058.cpp",
+      "sha256": "ba30a80c6721ff4a43a01f66f27258c282f9a7adf0485984cf227ebf447d5c59"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0059.cpp",
+      "sha256": "ac97d582e94a86138a32e55172fedddd84fdceddb8a4921b23616f7acdd369e6"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0060.cpp",
+      "sha256": "b2bd18d546a51e5fd6c1ab63c5833fea263c466f726bc1e0c4ad69282ad7e173"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0061.cpp",
+      "sha256": "a58eca34a463076e16cdebd866cdebedc7539092d96f3a5928918bc79a3b4171"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0062.cpp",
+      "sha256": "a7032d2114da9210bda47d3444b7dc336f10ed7d1891dcce98fbfb24be76c12c"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0063.cpp",
+      "sha256": "5eed3ce8a98529e67eabbcd6ab5db3bf14122cbfc9d49862e9291ce5c755a256"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0064.cpp",
+      "sha256": "3c6747cb0bd61a1bb59a98feb9dcca76f5c989db833dd02c384147105c5ddbad"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0065.cpp",
+      "sha256": "25a68dd0560f9ea766d6d732144ec5f62ec0821c2b7e388febaec33eaf998d6c"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0066.cpp",
+      "sha256": "26a68b1278ff801f4fb0d96cf772572fab54a4c4a748c517ded4e43599bf34e5"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0067.cpp",
+      "sha256": "f2f921f58e2024f2c313ee72cfff78c1dba13b6d7338fa7f2ffd48690f9d4f72"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0068.cpp",
+      "sha256": "cc8cc1fcf7f74f6f6a06976b7899a2b6690ad318e3b1f125bb678213fc4f7ac6"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0069.cpp",
+      "sha256": "8af9a4017e62d05b5577528f3a86e69d0f654fc9abe442168c639cb20821a4ae"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0070.cpp",
+      "sha256": "320576672e6a324340beef17efb14849df642888ac6d402be876b0b0e303d8b4"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0071.cpp",
+      "sha256": "2f4ec338f1e071b0441a061d26dc7d037f25bb24aa41b59054ab3de62b64e46d"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0072.cpp",
+      "sha256": "faf93b15ee5f3c1274bd7e54a315e6af3ff13057a77bc7cb861b474b04f6eb4b"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0073.cpp",
+      "sha256": "4257e1768de720fd3a3cdbea8728c5a861b9a1e33dc3637a4732ff70965aebd7"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0074.cpp",
+      "sha256": "ca1bce2c4cce8cac6d6ae4014338bced86c5824951fd01a473f014fc5e3d0a88"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0075.cpp",
+      "sha256": "229eb3c8343cd194e30d5b38e98f24fb7426fc969371409dd3310d3f733185c1"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0076.cpp",
+      "sha256": "7db4fe9bd4284c6bbb648d7438c54ee58a7b843282c96f642c4f4894b273b415"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0077.cpp",
+      "sha256": "e4e8bc5bc01fb336c0200c0808ea8b2c6439510cc4c98a22e2d8941510cccc71"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0078.cpp",
+      "sha256": "982dc445c92fc95b1dec19bcd3389e45295b3d5433204dc96630e76a9b6b4f6c"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0079.cpp",
+      "sha256": "d2d098dd04f38ead92ed53eca4af351a89643045882722e623fbeb6b986ba838"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0080.cpp",
+      "sha256": "d9948c1db80134eba7223d8baf10ccba5ee448947c5c4d6a96fa196f12e4c787"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0081.cpp",
+      "sha256": "82c7a896f1058ff7b9e9a9d4cd3579efc8abc2691e5f781af4a14b426b9cadb5"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0082.cpp",
+      "sha256": "bd4d50cd4f1408a3286ad81d729b2595dcf498c4dc676d587ce28355ba0a6761"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0083.cpp",
+      "sha256": "5b57c5031c0370e8851284381a2b82815033ec03bcbb8f547ba65cbee8e666c4"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0084.cpp",
+      "sha256": "1bdf1f52b14cbb098f819fd05e279f26fde213ba55a4c8cae44800e3d6fe1c0d"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0085.cpp",
+      "sha256": "16385800f97aab44d591b94756d93cce10c410c808c3ca0ec58a51cb5585d6e1"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0086.cpp",
+      "sha256": "88f8dcd322155619daf729e2564a2f87b8ff6651e9f7f9f0e44716536d8a36b4"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0087.cpp",
+      "sha256": "921c3d0c271b2f747a3c1376b96681e9fd80172f6b51044316f66df0ae213ade"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0088.cpp",
+      "sha256": "f020dc0948343500d83f26232e78891ac16e930f8b378bff3f0eb26ddedcb09b"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0089.cpp",
+      "sha256": "58801ecca5490840461f5d3147f180009ba178a3ffbe4d53bb61ab7553b2be02"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0090.cpp",
+      "sha256": "fc69f69b2899cd6b1fca62f448496cd9dff7678d85c9f8d52ddb219700a27580"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0091.cpp",
+      "sha256": "38df2bfeeeedf8fee9fb75d8b9a8626f056efa84e79657ad1e01bcc8fc642c29"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0092.cpp",
+      "sha256": "7f3f2349d5b46fd935b4af2622a621724f9618be810ce5c78e4065f2c048eaa5"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0093.cpp",
+      "sha256": "21c3b294e10e611ed8dbe660d28ad24517f9d401ee994d668dc54f4ca87870a9"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0094.cpp",
+      "sha256": "e5d536a6e17b95df44f7fd2b3b42768ca5b316e5edb4ae253c18949111a708fd"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0095.cpp",
+      "sha256": "60b8fa943b17d0814a3eb6a1f18f73a9c5330b60ec0ff8e0dc0902a3fb6b5cab"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0096.cpp",
+      "sha256": "76bca011fa3d0f03a939418e8b7935e56f91cddc2a90d20e8adfdccb904c2358"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0097.cpp",
+      "sha256": "ca6e0f791aef1e36a15792d4f4dbf29771d9bf2ce2aa4640e15011f30009ad4c"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0098.cpp",
+      "sha256": "c487dc2845f630d7472480602c960e45b34abe07faa42bffa475a12315763cc0"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0099.cpp",
+      "sha256": "d67259eee1b17ec5a6502baf365ed8d69ba2b1f67fd834a0dcbf05f400e48fc4"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0100.cpp",
+      "sha256": "9e0c4a2d7c3459a159730af0fd256e654c1686a1894460f2545c095b24c08b43"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0101.cpp",
+      "sha256": "e24b52f7ef7571d82e1fc54dfedbc3299634d799ed2f518f9f6fc19e9100c15b"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0102.cpp",
+      "sha256": "64b25337721fc82746fae9823e2dd7c36ede98f6ea34f049523007f5a96ee837"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0103.cpp",
+      "sha256": "6972e437d582bb4e6b21844e69f9824cd9c459095f3d9429d8d4860d6f8cd519"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0104.cpp",
+      "sha256": "eb33f8d07b3f9271fb9b4b474e4b0bd6bc60d2f2bf921bb7fe3aaae257a328c6"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0105.cpp",
+      "sha256": "1e03a07124799f8a59b957459b2bd73c77d5f747f575c37fa070155f5db12479"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0106.cpp",
+      "sha256": "4796d8db1e165c3e4d6f36b8271eb33cf2c2384391828e77e048544965fbb634"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0107.cpp",
+      "sha256": "ee86710b41d8e1bd7e9ab1c47034ff0e84a782721e295f7a1ff88e0a95d66b02"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0108.cpp",
+      "sha256": "7defbde9c199165446b587298d9828b03b6389a9550d0b5baec24261fdbbfd81"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0109.cpp",
+      "sha256": "024b3b463bbae26bcb5030794f509920214309527397cdec732e57cc29d67fb7"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0110.cpp",
+      "sha256": "7f93ac298f99a8ed51515d43e4fa21c47ca2d287c549001721c9dae77f683c64"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0111.cpp",
+      "sha256": "6d0ae53bf110082e5cf343b32944079d133669eb61a8abb578f93dda7d01adf0"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0112.cpp",
+      "sha256": "00c159ba08535b4512671174ca3bb95e02cff1640136e67e621120372240eec9"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0113.cpp",
+      "sha256": "1af9d6aaeecf1659281dafef4253c3af5c5d1649049ccc522598a607dacf6b48"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0114.cpp",
+      "sha256": "e6970409342a9d3f3c3b84db0fa1b040baf71221a8e838d342f9713c6e8e33ba"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0115.cpp",
+      "sha256": "159b75880604356148eed5a6b870f46caf29c3cc1100758f5201e97fb085faa7"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0116.cpp",
+      "sha256": "ef5b2918a1981e403b33e04d6dd4346ef76f83db33ed7f9261a15b2627acc698"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0117.cpp",
+      "sha256": "e6b78dbcd0b3ffbf5e72950a5c299d26a95d20bad4b4b001e641718f78f0d955"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0118.cpp",
+      "sha256": "f4ed9b567905c4d44a748980429ab69156744c64886ce2f2b1e576e081c74883"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0119.cpp",
+      "sha256": "84b918c1393b8d83b2432a92232d702c9c558d513676c190e05be51994b47b90"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0120.cpp",
+      "sha256": "563315c9e6a8d5872b822af491441692cfcd60b6743684aa7d07e98a3c92d1ab"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0121.cpp",
+      "sha256": "f24db56c8259c3722e77e8d9ec58f1c097fe6890cd562d15436dc05e34b2a632"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0122.cpp",
+      "sha256": "2a1c6fd77e70373c9043bd027d301267bb889dfd656f29dd5927ef4b92920bb8"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0123.cpp",
+      "sha256": "0fa17dd02c7345e5e76b6956daad462dd8c6df04f57afcaf00df543a101188da"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0124.cpp",
+      "sha256": "3a2501d10450a982cfb9fe60e463193d867347c91ab5b99aec3027f6f89de46b"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0125.cpp",
+      "sha256": "8eb47481ef7164694b3e2ba271646a6c6b324efc2e2f7987ebdb5cb548d13b25"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0126.cpp",
+      "sha256": "9d74897f8572ce87bafb3b280e016585485cb2bf551495529811fed1cba9825b"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0127.cpp",
+      "sha256": "fa1ee565601a8f6c6014581eb68205c693fd77afd11a7d9e7830d05b4ed83d8a"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0128.cpp",
+      "sha256": "8a1806032b21089b7426208b0038811a87e4bb22e1baf725898b896b263456b4"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0129.cpp",
+      "sha256": "610ec9ade99741f3d8c1113364665b5125a7f481244082d67b4545192e9a25ea"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0130.cpp",
+      "sha256": "a9425dfd0cb0b627aafaeb2182d6f2542f8842281dbaadf2b5a331209e4c7bc4"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0131.cpp",
+      "sha256": "f729dc4ce201759a213c2f95dc72e866532ebbe1524a9e45157d4f8490b6ca37"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0132.cpp",
+      "sha256": "859ccdabc797345f98ca6e294c0beeec2c53c8d484a072e9a0c31e8ad791661b"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0133.cpp",
+      "sha256": "3c130c85d1ae21dc942ccc969cfe231a9839f6553ea6969bcab9c80ab38fd588"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0134.cpp",
+      "sha256": "34705e19a9bf0d00235240182c6359de25b4188b153d168d6b39e4707b4ce15c"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0135.cpp",
+      "sha256": "cbc99c03fa488e9d6cf946acf72156afca361fb49190be0c345ea659e7495b43"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0136.cpp",
+      "sha256": "93df2c7c794b541f5ed8b4bbd287144591fad7d347fd1411852668523d85ebea"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0137.cpp",
+      "sha256": "341012d83b697defe19f4de7c7c6a8fffab6ef2e7910e4ad0043e05e092aa1a1"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0138.cpp",
+      "sha256": "b76f82dfb850702e948ebd5ed322e112dddfe9428833e12b9c01a9e546306e36"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0139.cpp",
+      "sha256": "8c9d19c6dcb561b0cd8809a0037886fc2a9d3a60d348e6d93dacb42e204879c0"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0140.cpp",
+      "sha256": "8b92e4436c991009c618ca7c06e7f9ecf284245ba9a581911080156cb0aa3e1f"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0141.cpp",
+      "sha256": "7c05dd8224839cdca6213790d2067e9bfa0f407f038ac92fec790681c6aab936"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0142.cpp",
+      "sha256": "28028c498c1fc056fc3055e7d03549d8326cfeb6f009ea59ff60d360bbc6fd39"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0143.cpp",
+      "sha256": "ba23f0df74af1ce322cdd709a154a18db0ca486e6a73b2db670b635dcb5d4c61"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0144.cpp",
+      "sha256": "4995d2c29f07ba649f08c2df9ac425be663a6c9780a99d063a75f3b2740c34dc"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0145.cpp",
+      "sha256": "597bcf62d3dae29fe018cf903dc2bc4860eae2ec523363ff57d398426244fdfe"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0146.cpp",
+      "sha256": "9bc388e250a1d44ac4e23a1b847e1f19242b45ca1c20ccf277eb9a3403cc5ead"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0147.cpp",
+      "sha256": "4e8f51e5865bc565d7f305fdb222029d4bcd6dc415295ea7cdd6363ce0e964db"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0148.cpp",
+      "sha256": "421c096412a02724f9938457b64f489d1e57313b5e073da638acc827a6cc4d76"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0149.cpp",
+      "sha256": "05b62b78d389d57681d532265e8f3b1c53dc1f81b81c27c32f048f7bc9f1d208"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0150.cpp",
+      "sha256": "6fdb1f58312eaaeffee20eff6db0c651c571d9e892c2ffa4a30b5c963483b969"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0151.cpp",
+      "sha256": "f010f876dff219bf9bff8c26e839c79b0a82be94f20d7f76ef7b640f302d7590"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0152.cpp",
+      "sha256": "58237c0fc0bcd564cd8a61552b998db3181099d37a0ec100c2fc6e04ecd8b827"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0153.cpp",
+      "sha256": "fcfda912b81f7331040354e10f203c8eea41c186dd87a4111d77108be0d3e31d"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0154.cpp",
+      "sha256": "1b43d3e73f0fbb55b52ffaf1d34641e963c254f8ea8b00bcee50e18d461f93ff"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0155.cpp",
+      "sha256": "85640ea28d31e30aa8fefd76ab4954d90e0156a99d91cbd57b496db4fb680718"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0156.cpp",
+      "sha256": "f692c818ecf9bdd22605a355f4332c4804f01fb54a9c11e78c1044e258257a9c"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0157.cpp",
+      "sha256": "19f99441b28163bc8295481afa30c4ffa660ab1ef0e4d6175e6cc5e80900d059"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0158.cpp",
+      "sha256": "b8473037ba23336f4a54fc89240d920f499db0a36d8e6176b1433e687abd44d6"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0159.cpp",
+      "sha256": "9d146c414cbcc42f80fe96fa78f374e6cc8ae5733babe862615ac17f4376cc97"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0160.cpp",
+      "sha256": "ae53bce7846319c09f0a4918ccaa8902a43999ae08a7cbe0fc2ad3328c3c50f9"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0161.cpp",
+      "sha256": "ac86dd78b4b142e1b4f8e1361f5b76f72392db26552a9fe61a99fe0bd83b11e6"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0162.cpp",
+      "sha256": "fc1bbc4617c3fe0ed3c73f96843a489cb1fdb2861bb69c1506258af35510f1fa"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0163.cpp",
+      "sha256": "d08890d6d6234eb79fc747dd5d6b61aa5f924fc39be63edd7b1cdb7363795b19"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0164.cpp",
+      "sha256": "b5a6c1e8694355542a29637b317236955f380da4b9484c21ebc410d687dfa18d"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0165.cpp",
+      "sha256": "7eb8d43b32706a8abce7f41bf4b3020779a4edfd8ac37f4baf2a1ce11822952e"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0166.cpp",
+      "sha256": "cca50944a00037bbe83e6c8b61bb4c8de4bc9b333bf2d27f5f875d9d68ce9c05"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0167.cpp",
+      "sha256": "17e0d42d250e62b0ad67d1635c6482f704b7c996a235507b634251dca1cba16d"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0168.cpp",
+      "sha256": "61e0facbf1acb1bcc5261bad7a4493a66291f50ccc78685f57455977b4bfabb8"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0169.cpp",
+      "sha256": "57442fdac333e5b4ae856d291c454597f45f05f2ebc397b2ab86c77e6627aaf0"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0170.cpp",
+      "sha256": "ab70a1b60ffa1c3b012608202f7cd58f29feef2dedc37131db1a13af4c0e7f9a"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0171.cpp",
+      "sha256": "57a2ae25efd688b6d76abfb93a78f7408c487c0b2371bbd52bb1e8e24a86269e"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0172.cpp",
+      "sha256": "797a79d40639099e0324a45a319aef632c4732e1ae197af7c66def6924beb332"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0173.cpp",
+      "sha256": "e4cde39213cddfc4c958e4b48ead335b7ffb308226592119eef9a5205aa576e4"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0174.cpp",
+      "sha256": "ddc5b2e8ba8554e20af00c5e680d9767e40b8c88c65b7160e9c3b2b05c910feb"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0175.cpp",
+      "sha256": "43fd9c880bc317790af6a2f8bd8f044be1041a2e1b7ef97d287a6448d955d3ef"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0176.cpp",
+      "sha256": "0fd6426d22a33d491fa75c74f0d5c0070b9b5e57df2ffbaefcf91dbd21a8eb43"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0177.cpp",
+      "sha256": "490d64aa1bae768846ac6cef74f5d0199a49b7e19a764d33bd109ac5ef0ed1e0"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0178.cpp",
+      "sha256": "42277744d77e04703323655181122bc85e3d5d65b5cc1c9558bebb86f713839c"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0179.cpp",
+      "sha256": "05cde0635e2c6fc562df3d355b2959ae566a33f642f2ae48d88dd5e4ff6f1101"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0180.cpp",
+      "sha256": "5d31b42c8c437d6be9a9a2bb5c499a73c59614d2401dcec1a437a6670d99d43c"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0181.cpp",
+      "sha256": "0caac48ed7b078fcf6550dca0a9d3611d3ace5d471818fc20ab33e88827b32d4"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0182.cpp",
+      "sha256": "bcdc1a022741ec633037559930377499a8f04e4db5d3fe85f844fa356ec9be94"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0183.cpp",
+      "sha256": "aa92bc794443883e7176da64ff597c0dfebc19033fc8739932d93d5bd480492a"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0184.cpp",
+      "sha256": "8a6765332e231568eb371a363d0ab9d9f1abc56f1d305e18c7d376c015d5d835"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0185.cpp",
+      "sha256": "b523b3a08f34382d3f49d218b5f9d17466b3d7acfe82dade29666249a663394e"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0186.cpp",
+      "sha256": "33c2bd76e1104a61a20a8e4101845c6bd02f22764499786720c304d04ff0cd8b"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0187.cpp",
+      "sha256": "846976ae04548e4bee67a76650e9ae050149ac5fb878ce6e676cf929fb47222d"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0188.cpp",
+      "sha256": "6efe66832959e0e810c570183a99eca58f115386a25e61b3468a95a5698dba58"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0189.cpp",
+      "sha256": "82ff53d3ef0c8cd50da6c71601cd5e0ad78e9bc761f19fd1e57b0c10e564466b"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0190.cpp",
+      "sha256": "a63315bae454854a52f90bf0d71343ce027e863650f38705eb94a356d135a87e"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0191.cpp",
+      "sha256": "a85568f32b76fb007a2ba8f17a5b9715cc9e8a2d37aafacf055313a662bd626f"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0192.cpp",
+      "sha256": "fe0a00f838783c464ae38f65d3e6668d07c0ef1b488c00a3671a225dcbad756b"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0193.cpp",
+      "sha256": "d67912f3dce7a72b9c268efacc84ad0ed185fc4c5e99dbb62a79bef6d6979ba5"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0194.cpp",
+      "sha256": "7d338f2dc7f8434f7be8b0c58358b68c71598ce98d27a3ca7e0e92a24340cb72"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0195.cpp",
+      "sha256": "435013e37fcb02dfc9d1f6ce63907600f5ff9574944b0dbaafe7d575693d4774"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0196.cpp",
+      "sha256": "43668180ed95fa3a4ca99225f58da3cbd9427eaffa1ea9a11c2816a0e778222e"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0197.cpp",
+      "sha256": "6e9cec6c34c37e65853b23d565dd3b3c4ab0e855cffaae60757a37d8bb2b8fee"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0198.cpp",
+      "sha256": "fe4ce8e462ea03274f4476b0321a77b33fc63f42e26e8dd0e110aa95a862dd91"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0199.cpp",
+      "sha256": "8c05fd83bb1b59ef8a3ca5351cd70fa557f922655e5e4941787625166ed7382b"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0200.cpp",
+      "sha256": "a5ead7c590938e742e06733965852e5c038660abcd122cafbbeeb81e3181a074"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0201.cpp",
+      "sha256": "f4fc4c4e4c8f4b32c17f46410fef0f49d8fa92e14bd9f0f0a53c7859a840922a"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0202.cpp",
+      "sha256": "ccf8ba256f7dca79a0b2c8a67eae829fa7866402172b6ea017ffd29856e2d50f"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0203.cpp",
+      "sha256": "9d195e23603fe228a009990d00caff0a9cff20beeb9532eb2be99ebad78ce57a"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0204.cpp",
+      "sha256": "a951a8ee643cd0d22ae3c868a731197fcebef8d347687f38895afe4b15c4e69a"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0205.cpp",
+      "sha256": "4d4fe73e92619f09c4cd49dfdd0f37ac3d595286fd9ef40d59edc12655712286"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0206.cpp",
+      "sha256": "10fb1e14141e89d45b4b42d71c55510822c39975b26d87a1f4a6b13a39c63a5d"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0207.cpp",
+      "sha256": "ee1b34d265fe2b042d4dfd59fd18c2f62af985135cd232cfa9f17355ef36ff39"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0208.cpp",
+      "sha256": "15b59a7c9fbfe05d5ca95aebe16bacad3c7faa27362b2b64c4649a0c2fa4e61e"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0209.cpp",
+      "sha256": "de6756669b8d230563b61b8d10460de874cd7bf9e70077db76512ee9649f9333"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0210.cpp",
+      "sha256": "e09072d976ed348a043e53aa94bdb55b1289b4566bc761c36d29659e429db716"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0211.cpp",
+      "sha256": "b72bab3a66ab1ea5a0d89046979efe42cd7427dc05167a6756cad61c98b4b0a4"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0212.cpp",
+      "sha256": "ea825c13469cc2c9d665bb7bddd232badfa983bbf6530210e16a164be67d305a"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0213.cpp",
+      "sha256": "ac7e92e5db88d6ae2c75e0b6718c2db54d4e44c88b6ab474fab38c8e21ab50ba"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0214.cpp",
+      "sha256": "1f1f069a8a4c909dc1e64aea358bc7ce1bd3fb4303e124a0b89a0679aef5a07c"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0215.cpp",
+      "sha256": "334c8d6a102a70710720f3839a34010e79b9aa7277da60048f518d3262ce09ff"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0216.cpp",
+      "sha256": "16df179b728ed147c243aa024603584fe6d3581f0785e22f250af29e33019bf5"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0217.cpp",
+      "sha256": "322e3f7f1ee99ee8b12325e2d2747bdd96cfa8fe89bb913cbebc36611e73c906"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0218.cpp",
+      "sha256": "5a7cb85dd6a60072b45f592e55c49153d0073be82c76cf77ae0d01b438679224"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0219.cpp",
+      "sha256": "bd34eed21650861dfeca218c27788a10240e27af7bd29177dee9529d3a2bf96e"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0220.cpp",
+      "sha256": "9726f87abb45b9499d6792aa1e52dd3d676e78e8ca3ed7eb299d9c84dbbc7703"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0221.cpp",
+      "sha256": "02be3e49d2277d2f59ed3e629d6e21257d948b64fdf41461b922186bf2dacb24"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0222.cpp",
+      "sha256": "8a63a5e383dd39f05f04efe4234a31a6463d3ba6acd9a19307b82318a8b2bf68"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0223.cpp",
+      "sha256": "850eb48da3fb0521fc6a6483ba9d3758be0a57dec284e9cc864b29e144c8b84d"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0224.cpp",
+      "sha256": "cf4aad846c753e3d1429d8faf0b1a2e6b256dfe3dcf565b0d8d01adfbdf88dd4"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0225.cpp",
+      "sha256": "e8cc9b6fd939392b0e9a31a51d2af9d1c0dee67c53106ad8a6b66a715188cca5"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0226.cpp",
+      "sha256": "78b2955a9352048e04cf5be358dcc583f1057ef13d3384ec7e223fb41e13ca1e"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0227.cpp",
+      "sha256": "9cd6842904ade646cfa621eb9e8a15d05d1cc54aa52343efcf966612b895ffd5"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0228.cpp",
+      "sha256": "d037a3a7801bd4c6aa37f03027547a63dd42a915cade4e655dec1c78f7761df9"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0229.cpp",
+      "sha256": "e9ceda5c97c3a1e0eb074f1e506602876ba9aa96035f3e85985a2343752cdd92"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0230.cpp",
+      "sha256": "5ec0d02682adb5d380eb07417d244eb48ad73098b31f927880e0c58137fd612a"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0231.cpp",
+      "sha256": "7f3ffbebb3025fa9990ee523fe92279d2fe92332a60fe2dd8c5e4587050e4aa3"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0232.cpp",
+      "sha256": "6cc9ffe7d43c636d2ddd4df6aee8e0a06defcdb4ba63251e70eb6476a4f47e9a"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0233.cpp",
+      "sha256": "ec880a589796470ad18472fc4e2717343ea1968f02fc326090546f514438befe"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0234.cpp",
+      "sha256": "f78eb3f402aa2d26f53b089f53ec5ce0778eff2f6f71775afc7a20bfa4061307"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0235.cpp",
+      "sha256": "ff237f05db347420b432d80cede99e309f085a02ce08893553f3723d850af914"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0236.cpp",
+      "sha256": "f5a3ca8999be843aa64d86a5f2b4fdfe9feeee4d6580c211347c875649904e4b"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0237.cpp",
+      "sha256": "a40c12102b06205af250fa699ee338bb8737fd45f11faade5e244282e48201ad"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0238.cpp",
+      "sha256": "dda1b0a2128a08b755d793ae3e9096bac9d39b948985371d58c3a767fd9ece16"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0239.cpp",
+      "sha256": "9900ea4f0af18e98ac0524bb5038791b43ccd9c0509335336ad9d3dfad3f6a9a"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0240.cpp",
+      "sha256": "604b384553d67d5a3b2967e905b15b294e0c23d48daf81b4955e7ba5a8deda5a"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0241.cpp",
+      "sha256": "47a8b1b0ed742dee8172a91be0237622b9d289d03762a0b9a5540cd0f43a819c"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0242.cpp",
+      "sha256": "5a423cfb023995aa5ee76aa767987492b8c7f6dfec59f826e86407093eff78f4"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0243.cpp",
+      "sha256": "7ddf97930a1dd7f9c60b37a6102442585cd3b6d6aa2ec7493a2246b4eb57c737"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0244.cpp",
+      "sha256": "24c15e3cd6be82479fbadb0dd4f6959a872c46ec0eca58d1342c5b8d6e7512ff"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0245.cpp",
+      "sha256": "58124a4ba909e8c87691595e32897048ba7b7f526e2d5f1d14ed10abfa40f752"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0246.cpp",
+      "sha256": "4437d746024d9c98e7402e8047b457e0dda0c802823bf5bccaae0a252da4df08"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0247.cpp",
+      "sha256": "f01fa76575356a712c1572477c1e917a7b088a6b9698926a5510db3bf9f5a05f"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0248.cpp",
+      "sha256": "f8ac6cf9a3771f84a7bb1c22e28da51e136a9a39a48e80a36af4202e53cf9908"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0249.cpp",
+      "sha256": "c1828db3728f95fdd76182185e2e79e24153e57270b282fbc49413eb85a74446"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0250.cpp",
+      "sha256": "cc079b8ace2e36d1c5c3450834e0997e14d42ed519f3b36a74389240c01f7a3e"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0251.cpp",
+      "sha256": "c871299b3e0c271ecba107ba4e8fb03ffc6b63068d0adcd59e55fecb7f9f9570"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0252.cpp",
+      "sha256": "4ce3cde7d2c7199962072a0c1db5ae872eba56461a55f8a2f4a74afbd47a8311"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0253.cpp",
+      "sha256": "24425bdfa315b6c9cea22d87b638d2dab2b58a821a7d1a35493d97218be6e698"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0254.cpp",
+      "sha256": "edb216ce643b649af7cd6d6a86174c01ae3569fc25a2981a5e84ebb11b70c557"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0255.cpp",
+      "sha256": "cec407f1c10b5b98b2f37c356701c41506f3de2e26fd1298b5500b26159ab4be"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0256.cpp",
+      "sha256": "ae1d0c2fe13d812917444a928494302cae52ae1133e79e445296327f69f6dc65"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0257.cpp",
+      "sha256": "5c8f231da7529f6841ad56f3edd81558fb88ad6c6fc33909a5a084c3fabadea4"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0258.cpp",
+      "sha256": "71a523ecbb503829f4baa2c99cb6e8ab74378934743b21e7b6a33cf830de1686"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0259.cpp",
+      "sha256": "b65989730d6205f105b2bdc972d0ebfb8937e02249f8a28a459462b56bf5ea87"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0260.cpp",
+      "sha256": "5e1b6441055134b088bee28a31e075a6c28fa9e597e1cef00c0e3c3638944a20"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0261.cpp",
+      "sha256": "d9ee30080553a2670a5ceeed3d55384439448fd43bb9d8fb48b26d50ff03c8e7"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0262.cpp",
+      "sha256": "3cc042d4e0eec3e3fa6944ff26eec237d6fabe44bd03d7cb2fe002907d4876ba"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0263.cpp",
+      "sha256": "04331952d97b2c03ca144292aa428b6ed0d900d6bb5075cc2f8d04a1e2341781"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0264.cpp",
+      "sha256": "683cb7d2af9d4af8497bb00fb8a498298479050e9c71fe782874eb686a3e50ff"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0265.cpp",
+      "sha256": "23ddebfeb1271a52667e6bd9f7a84cf018d100b806bb80174bf3ce8742f7ecc8"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0266.cpp",
+      "sha256": "5ffadd2c144e086c92200f76da1a56d02863b77a8efb6b0180ea684ec81aaa4b"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0267.cpp",
+      "sha256": "a09315c305796b997b43279e3837783f3c9b9fd14e206636c6ce4d0d279cf0d7"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0268.cpp",
+      "sha256": "c4d02a97008427c713c27e6bd3d2eab33aea5238d125dc315c22bf02bfd10d1c"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0269.cpp",
+      "sha256": "9a5a45deb05b279867f5c83dc30a0311f4e1cf2a954f69a1c403016119a7d0d2"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0270.cpp",
+      "sha256": "b634e8fd929885b10f67b3f58c8d885751146c843380a516dd77fc58cbb3f966"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0271.cpp",
+      "sha256": "5498a7c252162b563abd2c126a40fb8a6f04009c8cb067109d2c0c5696577d37"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0272.cpp",
+      "sha256": "baeb965393a03e2388aeb7714cc547119ac946da7ce01f09bb6619776eecbfef"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0273.cpp",
+      "sha256": "bef43b23be5dca6d496c6d58d0e2e097f1acda08c9b90756a9928b489d752360"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0274.cpp",
+      "sha256": "50f966f48510a79fb59fd48299aadb88e243842dbbfe3c06df0c9119d2af7344"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0275.cpp",
+      "sha256": "0a4e2835686fff96bc29a23c0eb1f2c7b2f7c43f304a4630606b7ea4818532e7"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0276.cpp",
+      "sha256": "ff550e242771dcc18448bc361add5a2062b389b2e2d116fb83e82dcc180f3084"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0277.cpp",
+      "sha256": "c3f9f29333c07b667b68f0ea481c3e0e3eb0e21ad9583d4a0c18fcd246a4b2f6"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0278.cpp",
+      "sha256": "ff3871ee8dc123aeb282e1d79200e4d20ed55457e92a199a16a4872b5e654de2"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0279.cpp",
+      "sha256": "3dbc52d5d17cc8e3662c9872c88eb7a146c2733267e266a18d6af5bfdeb959c0"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0280.cpp",
+      "sha256": "d95341e0eca55d858d1f06900b782fffabba707fd83dd13ae21081c28ce3c637"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0281.cpp",
+      "sha256": "49ae9c41861a1d475d1ab6f6b331dafa0648a963e42887b1b54be692e839172e"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0282.cpp",
+      "sha256": "6d66a940cd8098707b57c42833dbe14c4698df5ac7045db963d6420dea19bbc1"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0283.cpp",
+      "sha256": "122ecf4e0163181ea6f88602cd7a3a17db4bda83c3066f8e314cc6d9ff066988"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0284.cpp",
+      "sha256": "907f056ccfc0e355cd7fd54edd1976c2ebc5bbdaaa4e1394e7eb6ab56eb2c963"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0285.cpp",
+      "sha256": "b4d9d96047ea62ff3f87b0c783ad9ad7e250edb3e681b2fc45710499a557dad4"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0286.cpp",
+      "sha256": "72b84e97f07cbae5dfc8df46d8ea15cc549d53b53d6c852a47abefe4bf764fab"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0287.cpp",
+      "sha256": "b5eddb7b57eb110a3755219640b76cdaf0a2693310b8ff3e5382856862759286"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0288.cpp",
+      "sha256": "9865af0d68b4be50de850ff8ac57a6c1a461450843e6937961f654b505c72851"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0289.cpp",
+      "sha256": "b7502272bf5eb0cacf772245c3b37456ae390eeabaf3005f60c5ada33a66d5ce"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0290.cpp",
+      "sha256": "ba1570e628cb973f31dad67600cc3fbed9f25a2a1d0f75b3250f495110ffe369"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0291.cpp",
+      "sha256": "eb70f4d4e07c5577807ad88a158388ee9b750afbec9d7d4a86012369df244e18"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0292.cpp",
+      "sha256": "7445503d9879aff659e08d05179a4461bcf7728fb55d5d9b5ef3bb3af0ff32fd"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0293.cpp",
+      "sha256": "4e2c1d4fc10bd59418a5f9996f7639db07cc18f203c1cd75b386b4302a7100f6"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0294.cpp",
+      "sha256": "25d318695ccf5608244f402e07f5c112d3d00a8e06c66c4347ee1a03c7d3784c"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0295.cpp",
+      "sha256": "9dd299bd9abb10ff612c3fa2d599515b705e41e93abc79bf7a4fe6a7c0cd57b5"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0296.cpp",
+      "sha256": "87da2da83ce30530bdc82a4627f938a47a26eae1ebfea51fd74c3cd994f62389"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0297.cpp",
+      "sha256": "264d94451ca8c3885034a4b89a0f9aea9244e0dfb11996f3c32d8e7acc7adccb"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0298.cpp",
+      "sha256": "b8331d25f59da3276cdd3d7a9824fdd8f57393d24d2e3bfeeb1c3e8ef9f8c6d2"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0299.cpp",
+      "sha256": "f17a7708ddf2e217a09db072d352be0410c2d0ce43975f5bf6202e706e254891"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0300.cpp",
+      "sha256": "7fc67a144388f13786c3338c9507401a50a4ec33f468a47ef5cbaa9f4f9fe29b"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0301.cpp",
+      "sha256": "f845c4d8b464ab50664f97004ae668197232d3f05654fa61f4384f607e1f58ec"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0302.cpp",
+      "sha256": "28db817eab8e9b7b329940d7266cf4ee08d6e92d3b6df9fc2a0429d648142bf1"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0303.cpp",
+      "sha256": "8b018bcd1b42f0f29632dbc249dd32af6fe820cb813b4d4aef2b865c0a625284"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0304.cpp",
+      "sha256": "d6926629e98389e3c92f58a3c1fe28243692861bf4e78f2754e7e619efe7acbf"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0305.cpp",
+      "sha256": "eff44eb5bcc6c52541da782dc4cc6dfb2faa3e1ec2af2740bd19ca1f8b4d5062"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0306.cpp",
+      "sha256": "e4c4ed6b2f8c59844474e5d2db60c63d3d33d4a842e8f3223593c21f645611b0"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0307.cpp",
+      "sha256": "1aaf8fdd26d325924f602c4ba5766ba44d55a3970afe96addbb78ea6a1e925f0"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0308.cpp",
+      "sha256": "2f804e05f0f1c7c8a12b60b568335514cc14ad4381ed930eda0e1a20879baf87"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0309.cpp",
+      "sha256": "6e5214444735397a832da2a2e7abfa49fc6b5ed0970844f0fdfb2d685ce4811a"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0310.cpp",
+      "sha256": "51598ce2be0c415aac1897a2e9a24e2d270f8dad06af359f289b7f7b2f7a574c"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0311.cpp",
+      "sha256": "2c51fab444132317823fd2e0f550d9a1d4bd3856958d25ee0b6e06d3069da54a"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0312.cpp",
+      "sha256": "5e4c2c59ed75d3854aad6351ae4621d77a7b64751fb139389034dc0bc9dcc2bd"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0313.cpp",
+      "sha256": "352a4676dd53e6cc39189d7e6392f755c0ed06fc4a06b6cf2042e0ebf1550710"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0314.cpp",
+      "sha256": "b070b774809dff71afc46fabd7d87715db25bc2b0345857c4e475aa1e0be8348"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0315.cpp",
+      "sha256": "67beceeb48ef342beea1762ccea231a367ae9c24e8de0fc3c51189429edd6236"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0316.cpp",
+      "sha256": "4c02909b2f75820d3e760960a5c999970548048dd030c107e9497177b12ecdc8"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0317.cpp",
+      "sha256": "248df092d57a0650e8b9a165052ed3849138ec4ef9ad46baef03b2dacd3bbc46"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0318.cpp",
+      "sha256": "fa65c349865b8cf5ac76e49bd516fa25d403af94b3ef9d7f22cfde226afd754b"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0319.cpp",
+      "sha256": "bd8c342cfea5d089cbbc66cd09a5c060cd6b98277317df356ce657227be85d1f"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0320.cpp",
+      "sha256": "9a3ff21a51615793f3d159fc0b428e236660db6d246a8e57ac5261a6bd679c4e"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0321.cpp",
+      "sha256": "49c0b46cffe72462ed88124b15b61075bbef7fc5cd3147fa31509f9e2ed598b9"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0322.cpp",
+      "sha256": "4037c50b4e05d2142b088c03557cbf929454c0d35a598c2ec5ff10bf0f45fd92"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0323.cpp",
+      "sha256": "79d2c266e39ebf476caf86f5eb91accc94a15a42ec002acaf3591b1cc31f584f"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0324.cpp",
+      "sha256": "196e988f6e99500cfe350cb8ae5799135ad9d1ad5265ba12c0f5b70d95efb548"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0325.cpp",
+      "sha256": "6bc5a4b48534cfd0fa2a7e344ec4e3d50f96ae4afbd471a82acf0b03b051544b"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0326.cpp",
+      "sha256": "ec772251dc278df3f82e74aa2f0c39bb69431ba00b12f1a4c6d53e452087dee1"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0327.cpp",
+      "sha256": "f6245331dbdca97ecf86351b17a391ac2d1998682f833bef94e7236942f394d5"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0328.cpp",
+      "sha256": "40bb87bb0103298b2e5a075ae6d1235fe72bdc1297ad72038f90a5d7d927c100"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0329.cpp",
+      "sha256": "e0fde32255b786ad304261345cd96b4bfbb10969576d18a3bc30dfcfe3db0372"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0330.cpp",
+      "sha256": "e220f4ea168fa6bc6887e25150fd4149b137d61325bcdac3a5d277e84e650c7b"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0331.cpp",
+      "sha256": "1f960035edf6bcc40118b0308b74054c52c895dc685c1c282d1cb8df0c604a8b"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0332.cpp",
+      "sha256": "2e0fb34079d84e83e84f4d1460aa070f9e899bbf33b4402a095cd19408b492a4"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0333.cpp",
+      "sha256": "a425fa90654b29f85f361f05122b01a9752574d18344f3dab9e20672ef37917e"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0334.cpp",
+      "sha256": "d12c85494ab783fc91b742592822e26e181090ff5ac6cf6b7b559c81e5e1c435"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0335.cpp",
+      "sha256": "eab497db9f2965c502251a6d179f04a1ac8265c5f1d721569eba6b2f8b68fb3d"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0336.cpp",
+      "sha256": "da0539ebfdc9c38ea2d1623aff058bbdbf001212089b0a4c049c69fa458e80ce"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0337.cpp",
+      "sha256": "7878b4849ef9b1901ae952a62844476b5274358a088fb9edf2af16cb61a70b11"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0338.cpp",
+      "sha256": "a938c1179a0bb5af89406229280caa7ce0d08cc9e8ac961189b8875cf5d775b8"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0339.cpp",
+      "sha256": "f722dba84513312127bef15a88c6fbbe6c2e98f321a64c73dfc279c1ed57229d"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0340.cpp",
+      "sha256": "62d9ba425a2fb2cb598b99ddebf378d833836d054913b80188e586de4f03a523"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0341.cpp",
+      "sha256": "0ed619aad5573c21c106d7072dd0ade8a5af7e90565786cba166061b5019376b"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0342.cpp",
+      "sha256": "6a641cda524f67d2d9a45a80ff35c3bc92ff7cdab14198b4194eee1d23d09126"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0343.cpp",
+      "sha256": "4a31adacc3295614c64f84f6ee975c571c64a7b052868a65923f6998168097df"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0344.cpp",
+      "sha256": "503a232d3440372b9a2ac5f2da70e7d37c73e393e47478f31f3aeb2df984c62b"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0345.cpp",
+      "sha256": "cca9ad0b50babae2eed0f8933b127992596e5c583358b1663beabfe565974eaa"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0346.cpp",
+      "sha256": "da7d643fc038d1138072da8dad4f663416962eca9622a94a4e63115ff1346ea9"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0347.cpp",
+      "sha256": "3b7867e070c25856e4bd3b0e73b6a66c8bf99e738d8d0f903844fa0183187b5f"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0348.cpp",
+      "sha256": "d544230dd5c767fd7d88980e8c4b0f1413a608caba156eff5f994d84bce9f264"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0349.cpp",
+      "sha256": "b9717f27ad472342dc201f4d8a87c17613ed1977fb68eaea129c7904709f73a4"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0350.cpp",
+      "sha256": "c5d06d63e3e9af338bb8cdeaa790361d9cef6450924e6113024aa86031fd1233"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0351.cpp",
+      "sha256": "4108b97d1079c2ca67fcfb3bceb92c88ad40484d66927b36f93b7b19d0375071"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0352.cpp",
+      "sha256": "cafb76f4e9edac3a35b72ef1b769072b74d05ae5b67107686f3bc5ce3a936475"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0353.cpp",
+      "sha256": "1711ab5281ddbc215d714916356fa7a2f2e8b12c5176a0620c3c1db03351d005"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0354.cpp",
+      "sha256": "dcc580d77135596bc5f3f5b6f57558d8bcd490307a426930c6766364dd72941b"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0355.cpp",
+      "sha256": "a16808e262377044cbf8a6fff049bc37e6ddad093cc8121a756be03cc6d20731"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0356.cpp",
+      "sha256": "bd9b127fe06f332b275d7cc37447fe3f105c335ae931cce7fb34a3884e95a2ed"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0357.cpp",
+      "sha256": "d4c583b3de17bf433bba83adf079a5619a7a7d2530286919e44be27c7a51bf2e"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0358.cpp",
+      "sha256": "aca147a4ed6aa457ecd272694908b82ee99eaacd2af743826c6472a3b85bf1b1"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0359.cpp",
+      "sha256": "d1b008f4364a8ab875610e380a5dce00acd4f99a73bae90ed68f9bcd0a548129"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0360.cpp",
+      "sha256": "24bd3b5a84d27d8baaf551330aa99bced53110fa35f5b2d8a58da391eaba9350"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0361.cpp",
+      "sha256": "3f537c2b1a69123c70e8f1e23379825cc3e95013de58792a7492686ad71979fa"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0362.cpp",
+      "sha256": "bfc7bd7a4ed8fe8886fef0fa59dd3042d5a61c1ba9e1aeea8b1aad4eb58e8a12"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0363.cpp",
+      "sha256": "61d54614c70fc61283b55cf4e07f52e87fed4cb227a2d87207f9e5f608f2892c"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0364.cpp",
+      "sha256": "5e6a3347167b7dcd821f185ed41d6176559b2ae59f64c1923befbb7f306f17ee"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0365.cpp",
+      "sha256": "d67de9b5d141dbd0d9d71aaca2f25b0aae353f873f172368d980dd663a7df6d1"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0366.cpp",
+      "sha256": "26ba86b007c193c127efc32133a5091675e0c9ad4223c4d5fe4c2cded4ebfc92"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0367.cpp",
+      "sha256": "fb5d41732711fc968860095dfc264cee5e7ed31eb01fefc10de88676b518a666"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0368.cpp",
+      "sha256": "816ad8a390897a64896e2823af5e31aa2d93af8ceb46fb4607b6ba47a07dc5a1"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0369.cpp",
+      "sha256": "f6ee327d7c77c98342cc7cfa9a88004dcd5c1a78cb8b676f0c128b6d93eb5cd7"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0370.cpp",
+      "sha256": "fe9c4defbbd5c07a862f96817b912c7fae896e9cb9347f00c15e812b43474f7b"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0371.cpp",
+      "sha256": "3938f074d05e95dfdbf442d4c316361350e916f5e5c9c9f83e39f98b8a357fe4"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0372.cpp",
+      "sha256": "1df914b36a9858d48ff0adb94116b71e6c5345a129d0f90f85aade46f06a3889"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0373.cpp",
+      "sha256": "1c5ebb20eac19be12ecdf887da088245c031f3880e323ab793684db8f7b83320"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0374.cpp",
+      "sha256": "391a7c1329ba813b705a500aa7e0825079b2430b95b4c1687a3f370e4ec35182"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0375.cpp",
+      "sha256": "769c280275181c623dbd0fb2836c6ed6c1efafb61b93ec2cfa0ca12157afe2e2"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0376.cpp",
+      "sha256": "ca71740b3d38e6fe393352ffd3b8e212a95ce5513263d3c7440793a0d10e3049"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0377.cpp",
+      "sha256": "87c22cff3ee9c4c3150986166046266dcedf3617a64f253727eceef8c0f6babd"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0378.cpp",
+      "sha256": "456dc7c466b127c690be503ea48995f189aae9c33fc37b9638595b75fe799d70"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0379.cpp",
+      "sha256": "58527150af16fec8874067b69b7fff37096de133927ad9d0efd57945b0213c87"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0380.cpp",
+      "sha256": "2a1168544404fea16d5b7ac5ced80834f94f3310c54beeef61c5534bda8d2440"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0381.cpp",
+      "sha256": "443cfd6baa0fc12100d25c23d160e28b1a581f40823335e8dff540b29f386c0e"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0382.cpp",
+      "sha256": "0cef7e52eed8ddcdaf3dd08b0919e6ab7d36d208deb4a7e22f721696d9c2c685"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0383.cpp",
+      "sha256": "783db87f2ed2b9b9a202f779d752ea3154949393a8e4411e0c3f9ab0820be8b1"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0384.cpp",
+      "sha256": "fdd41abee8e3ad6a8a84df3a975213b61d9c4c1412da30af68f8d95eaf039c60"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0385.cpp",
+      "sha256": "42cc24d44207a82c60a03f3983993df68076c6de01e20b4e4748b397ed8a0a14"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0386.cpp",
+      "sha256": "2c2c820500e162c1e2c0f381c29ae0009f2b41cc712e7c77c61469a49fd59f69"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0387.cpp",
+      "sha256": "1f1994216f4ba5e22ee57142af838e07a1a329f8d58fda4a6f884e80d831d866"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0388.cpp",
+      "sha256": "78b835f82a163d3423bc1a4129bbd7fa2a053b5dd0162a332d7bbf0f4c95984c"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0389.cpp",
+      "sha256": "94234ed08e5820d399622be9ee5aff03996af6f397fce95c63ace3a1566165fd"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0390.cpp",
+      "sha256": "2929a12c11583c973f8b623506e0d6d1c2da50501e2c9db1cd024abc10ac9061"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0391.cpp",
+      "sha256": "13673ad774a413f506691971db064c251890380f449dd05e8005668971feeac7"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0392.cpp",
+      "sha256": "f1a5dbd73ec1fc838c3e771491e5df2ce2b31a465242cd70e6aab77affc0c3b1"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0393.cpp",
+      "sha256": "8c2fb02c59d82a99bd6f346a9229603f6e63f51404d8f946c05cf0fb375524d5"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0394.cpp",
+      "sha256": "ab9cbfcc2c977cc0d536257cbd718526175c317172d8727312ae95691bc8d3c4"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0395.cpp",
+      "sha256": "6de7baadadebb301bd5fe1fa8b4d3e10d9ed8433463883e2c11bb3fdf0375499"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0396.cpp",
+      "sha256": "d95547e4d39b89012fdf44cd923aabf874fc9af4edfb9822c566a67379ee9845"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_unit_0397.cpp",
+      "sha256": "7ebeff9d513ce32b76bfb99ea0394e3729edab4f10b1a47dcbe19acd9e6b7426"
+    },
+    {
+      "path": "profiles/renegade/generated/generated_units.hpp",
+      "sha256": "6e65e930cef90f8617cdcc1c260105db82f30282650a8123ee6ce7438c34c624"
+    },
+    {
+      "path": "profiles/renegade/supplemental/callback_08896118.cpp",
+      "sha256": "c215b85dbd57fdd04f4ef5fcee6df6a2f5bffd812b44d0ced1df6ba3306a3137"
+    }
+  ]
+}

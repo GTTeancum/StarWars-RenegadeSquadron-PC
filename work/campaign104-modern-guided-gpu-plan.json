@@ -1,0 +1,12 @@
+{
+  "name": "campaign104-modern-guided-gpu",
+  "start_pause": 2524,
+  "maximum_vblank": 20000,
+  "timeout_seconds": 7200,
+  "source_replay": "work/project/replays/controls008-boot-to-spawn.txt",
+  "replay_sha256": "c77cb5519e581940d3defc5b069058d98bd6274649d8b65a4a249ea8328f9560",
+  "input_scope": "Normal PSP menu inputs until2524; guided modern diagnostic raw pads and explicit PSP menu inputs after that. No game-state edits or physical XInput acceptance.",
+  "capture_scope": "Actual same-boundary GPU HD and FXAA readbacks at controller pauses; native480x272 references retained. Stale/missing readback is explicitly uncaptured.",
+  "early_reference_scope": "Native480x272 samples from1500 every300 vblanks; not enlarged HD screenshots.",
+  "first_mission_complete": false
+}

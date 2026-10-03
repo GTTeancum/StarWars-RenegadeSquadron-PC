@@ -1,0 +1,22 @@
+0x08A2E2C8 0x3C0208AF lui rs=0 rt=2 rd=1 sa=2 imm=2223
+0x08A2E2CC 0x3C0308AF lui rs=0 rt=3 rd=1 sa=2 imm=2223
+0x08A2E2D0 0xC456FB24 lwc1 rs=2 rt=22 rd=31 sa=12 imm=-1244
+0x08A2E2D4 0xC47AFB20 lwc1 rs=3 rt=26 rd=31 sa=12 imm=-1248
+0x08A2E2D8 0x3C17EFEB lui rs=0 rt=23 rd=29 sa=31 imm=-4117
+0x08A2E2DC 0x0A28B786 j rs=17 rt=8 rd=22 sa=30 imm=-18554 target=0x08A2DE18
+0x08A2E2E0 0x36F7A409 ori rs=23 rt=23 rd=20 sa=16 imm=-23543
+0x08A2E2E4 0x27BDFFF0 addiu rs=29 rt=29 rd=31 sa=31 imm=-16
+0x08A2E2E8 0xAFBF0000 sw rs=29 rt=31 rd=0 sa=0 imm=0
+0x08A2E2EC 0x84A30014 lh rs=5 rt=3 rd=0 sa=0 imm=20
+0x08A2E2F0 0x84820014 lh rs=4 rt=2 rd=0 sa=0 imm=20
+0x08A2E2F4 0x84870012 lh rs=4 rt=7 rd=0 sa=0 imm=18
+0x08A2E2F8 0x84A90012 lh rs=5 rt=9 rd=0 sa=0 imm=18
+0x08A2E2FC 0x84860010 lh rs=4 rt=6 rd=0 sa=0 imm=16
+0x08A2E300 0x84A80010 lh rs=5 rt=8 rd=0 sa=0 imm=16
+0x08A2E304 0x00402021 addu rs=2 rt=0 rd=4 sa=0 imm=8225
+0x08A2E308 0x0E28B8C8 jal rs=17 rt=8 rd=23 sa=3 imm=-18232 target=0x08A2E320
+0x08A2E30C 0x00602821 addu rs=3 rt=0 rd=5 sa=0 imm=10273
+0x08A2E310 0x8FBF0000 lw rs=29 rt=31 rd=0 sa=0 imm=0
+0x08A2E314 0x28420001 slti rs=2 rt=2 rd=0 sa=0 imm=1
+0x08A2E318 0x03E00008 jr rs=31 rt=0 rd=0 sa=0 imm=8
+0x08A2E31C 0x27BD0010 addiu rs=29 rt=29 rd=0 sa=0 imm=16

@@ -1,0 +1,11 @@
+RS_WORLD 1 -0.925925925925926 -0.925925925925926 0.925925925925926 10
+"D:/Programming/GitHub/RenegadeSquadronPC/work/map-conversions085/data_PEB/Worlds/PEB/msh/HOTH_bldg_hangar_center.msh"
+"D:/Programming/GitHub/RenegadeSquadronPC/work/map-conversions085/data_PEB/Worlds/PEB/msh/hoth_bldg_large_hangars.msh"
+"D:/Programming/GitHub/RenegadeSquadronPC/work/map-conversions085/data_PEB/Worlds/PEB/msh/hoth_prop_collapse.msh"
+"D:/Programming/GitHub/RenegadeSquadronPC/work/map-conversions085/data_PEB/Worlds/PEB/msh/hoth_prop_rock_4.msh"
+"D:/Programming/GitHub/RenegadeSquadronPC/work/map-conversions085/data_PEB/Worlds/PEB/msh/hoth_prop_trench_turrets.msh"
+"D:/Programming/GitHub/RenegadeSquadronPC/work/map-conversions085/data_PEB/Worlds/PEB/msh/sectionA.msh"
+"D:/Programming/GitHub/RenegadeSquadronPC/work/map-conversions085/data_PEB/Worlds/PEB/msh/sectionB.msh"
+"D:/Programming/GitHub/RenegadeSquadronPC/work/map-conversions085/data_PEB/Worlds/PEB/msh/sectionC.msh"
+"D:/Programming/GitHub/RenegadeSquadronPC/work/map-conversions085/data_PEB/Worlds/PEB/msh/sectionG.msh"
+"D:/Programming/GitHub/RenegadeSquadronPC/work/map-conversions085/data_PEB/Worlds/PEB/msh/sectionH.msh"

@@ -1,0 +1,5 @@
+# Controller only; the first prompt defaults to Yes, select No.
+800 808 0x40 128 128
+840 848 0x4000 128 128
+940 948 0x4000 128 128
+1040 1048 0x4000 128 128

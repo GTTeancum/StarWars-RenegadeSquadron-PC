@@ -1,0 +1,73 @@
+# PC mode
+
+`Play-RenegadeSquadronPC.cmd` now starts in **PC mode** by default. It runs the optimized build
+(`work\build-perf\bin\RenegadeNative.exe`, built with `work\build-perf.cmd`) with the graphics card
+drawing the game and presenting straight to the window. Nothing is drawn on the CPU.
+
+Measured on the Echo Base replay at 1280x720 (Ryzen 7 8745HS / Radeon 780M): about 58-59 frames per
+second with all features on, against about 1.5 before this work.
+
+## What PC mode changes
+
+| Feature | What it does | Source |
+|---|---|---|
+| Graphics-card rendering | The game's draws go to DirectX 12 and straight to the window; no CPU drawing, no copy-back | existing recomp DX12 backend, now connected to the window |
+| Graphics-card positioning | Vertex positioning on the GPU (verified against CPU positioning on 11 maps) | existing recomp path, now default |
+| 60 fps game cap | Replaces Renegade's own 20 fps cap (Asura `s_fMaxFrameRate`) | Asura timer code |
+| Per-pixel lighting | The game's own lights evaluated per pixel; highlights use the real camera direction | Asura PC `DynamicLights.fxh` |
+| Sun shadows | Shadow map from the scene's dominant light; 12-tap soft filter; darkens the finished pixel | Asura PC `ApplyShadows.fx` |
+| Bloom | Bright-pass, 4-tap blur passes, added before the HUD | Asura PC `FSFX_SM30_Bloom.fx` |
+| Normal maps | `textures/<id>_n.png` (or `.dds`/`.tga`) next to replacement textures | Asura PC `NormalMap.fxh` |
+| System messages | PSP message boxes drawn as a GPU overlay | new |
+
+## Launcher options
+
+```
+Play-RenegadeSquadronPC.ps1 -NoBloom
+Play-RenegadeSquadronPC.ps1 -NoShadows
+Play-RenegadeSquadronPC.ps1 -NoPerPixelLighting
+Play-RenegadeSquadronPC.ps1 -SmoothFog
+Play-RenegadeSquadronPC.ps1 -FrameRateCap 30
+Play-RenegadeSquadronPC.ps1 -Renderer Software      # the original CPU renderer
+```
+
+Fine tuning through environment variables (set before launching):
+
+| Variable | Default | Meaning |
+|---|---|---|
+| `RENEGADE_BLOOM_THRESHOLD` | 0.75 | Brightness above which pixels bloom |
+| `RENEGADE_BLOOM_INTENSITY` | 1.0 | Strength of the added glow |
+| `RENEGADE_BLOOM_ACCUMULATE` | 0 | 1 = Asura's trailing glow (washes out bright maps such as Hoth) |
+| `RENEGADE_SHADOW_STRENGTH` | 0.75 | Shadow darkness (Asura `g_fShadowStrength` role) |
+| `RENEGADE_SHADOW_RADIUS` | 30 | Half-width of the shadowed area around the camera, world units |
+| `RENEGADE_SHADOW_SIZE` | 2048 | Shadow map resolution |
+| `RENEGADE_SHADOW_BIAS` / `_SLOPE_BIAS` | 0.0006 / 0.003 | Self-shadowing bias |
+| `RENEGADE_FOG_CURVE` | linear | `smooth` = smoothstep fade between the game's fog start and end |
+
+Debug views: `RENEGADE_PER_PIXEL_LIGHTING=normals` (surface directions as colour),
+`RENEGADE_SHADOWS=debug` (red = shadow, green = faces the sun, blue = inside the shadow area).
+
+## Design decisions that are not straight from the Asura source
+
+- **Bloom defaults.** Asura's component defaults (threshold 0.5, trailing glow on, warm orange tint)
+  were overridden per level in AvP. Renegade has no such data; threshold 0.75, trailing glow off and a
+  neutral tint hold across Echo Base, Hoth and Mustafar.
+- **Sun direction.** Renegade lights each object with three single-colour directional lights sharing one
+  direction (the PSP form of Asura's spherical-harmonic lighting). The sun is their brightness-weighted
+  average over the frame's shadow casters; the world geometry itself carries no directional light.
+- **Shared lighting space.** Renegade folds the camera into object matrices but draws terrain with a real
+  view matrix; per-pixel lit draws are converted to camera space so terrain, objects, lights and the
+  shadow map agree.
+- **Normal maps on baked surfaces.** World surfaces have only baked lighting, which a normal map cannot
+  affect. Where a normal map exists on such a surface, the baked colour is scaled by the map's change in
+  response to the sun (exactly 1 where the map is flat). Asura PC lit these surfaces from per-vertex
+  spherical-harmonic data that Renegade lacks.
+- **Fog curve.** Asura fades fog through a per-level curve texture; with no Renegade data the curve is
+  an optional smoothstep. The default keeps the game's own linear fog.
+
+## Known issues
+
+- Sun shadows darken some interiors that the game already lights as indoors (`-NoShadows` avoids it).
+- Shadows follow the camera's rotation; slight shimmer when turning is possible.
+- Frame-to-frame timing varies slightly around 16.7 ms.
+- The PSP on-screen keyboard (profile name entry) is not implemented; the game stops there.

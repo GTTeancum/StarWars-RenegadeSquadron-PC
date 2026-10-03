@@ -1,0 +1,9 @@
+{
+  "name": "campaign105-movie-parity-gpu",
+  "start_pause": 3146,
+  "maximum_vblank": 6000,
+  "timeout_seconds": 1800,
+  "replay_sha256": "c6250c99b96d6e23e4a4e7cc59ceed29498a07b8cad2ed59ed62af8f6b531730",
+  "native_sha256": "9c6f1e06072ee083fadb17d2cb9b26069d4601747f23590c72128d9110596659",
+  "scope": "Ordinary menu restart inputs reproduced from104; raw movement omitted. Actual movie state must be observed, not inferred from timing. CPU-decoded movie upload only; no guest/gameplay/texture-source edits. Mip/filter changes skipped."
+}

@@ -1,0 +1,62 @@
+{
+  "branch_requested": "campaign",
+  "confirm_count": 0,
+  "choice": 0,
+  "renderer": "software",
+  "final_vblank": 1592,
+  "capture_vblank": 1591,
+  "steps": [
+    {
+      "start": 1401,
+      "end": 1408,
+      "buttons": 16384,
+      "psp_x": 128,
+      "psp_y": 128
+    },
+    {
+      "start": 1409,
+      "end": 1448,
+      "buttons": 0,
+      "psp_x": 128,
+      "psp_y": 128
+    },
+    {
+      "start": 1449,
+      "end": 1456,
+      "buttons": 64,
+      "psp_x": 128,
+      "psp_y": 128
+    },
+    {
+      "start": 1457,
+      "end": 1464,
+      "buttons": 0,
+      "psp_x": 128,
+      "psp_y": 128
+    },
+    {
+      "start": 1465,
+      "end": 1472,
+      "buttons": 16384,
+      "psp_x": 128,
+      "psp_y": 128
+    },
+    {
+      "start": 1473,
+      "end": 1512,
+      "buttons": 0,
+      "psp_x": 128,
+      "psp_y": 128
+    },
+    {
+      "start": 1513,
+      "end": 1592,
+      "buttons": 0,
+      "psp_x": 128,
+      "psp_y": 128
+    }
+  ],
+  "menu_route_source": "Observed historical source065 Single Player menu; fresh actual capture determines current options",
+  "replay_sha256": "49bb87fe697034f2708f75d248d1e6445e1f1410aafe23dccc16e048c3840f1f",
+  "selection_verified": false
+}

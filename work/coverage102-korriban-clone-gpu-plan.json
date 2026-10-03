@@ -1,0 +1,402 @@
+{
+  "planet": "korriban",
+  "planet_index": 6,
+  "era_requested": "clone",
+  "mode_index_requested": 0,
+  "renderer": "gpu",
+  "menu_only": false,
+  "menu_stage": null,
+  "menu_route_source": "ground-map-menu072 prefix and controller taps only",
+  "planet_position_scope": "Observed indices 0..20 in retained menu evidence; 21 requires fresh menu validation",
+  "replay_sha256": "b2e1eb5bb77574df14b470cf299dd29e4fa2f16b65d8ad6525ed2d0e0170e8f2",
+  "final_vblank": 2648,
+  "capture_vblank": 2647,
+  "steps": [
+    {
+      "start": 1401,
+      "end": 1408,
+      "buttons": 16384,
+      "psp_x": 128,
+      "psp_y": 128
+    },
+    {
+      "start": 1409,
+      "end": 1448,
+      "buttons": 0,
+      "psp_x": 128,
+      "psp_y": 128
+    },
+    {
+      "start": 1449,
+      "end": 1456,
+      "buttons": 16384,
+      "psp_x": 128,
+      "psp_y": 128
+    },
+    {
+      "start": 1457,
+      "end": 1496,
+      "buttons": 0,
+      "psp_x": 128,
+      "psp_y": 128
+    },
+    {
+      "start": 1497,
+      "end": 1504,
+      "buttons": 16384,
+      "psp_x": 128,
+      "psp_y": 128
+    },
+    {
+      "start": 1505,
+      "end": 1528,
+      "buttons": 0,
+      "psp_x": 128,
+      "psp_y": 128
+    },
+    {
+      "start": 1529,
+      "end": 1536,
+      "buttons": 16384,
+      "psp_x": 128,
+      "psp_y": 128
+    },
+    {
+      "start": 1537,
+      "end": 1560,
+      "buttons": 0,
+      "psp_x": 128,
+      "psp_y": 128
+    },
+    {
+      "start": 1561,
+      "end": 1568,
+      "buttons": 16384,
+      "psp_x": 128,
+      "psp_y": 128
+    },
+    {
+      "start": 1569,
+      "end": 1592,
+      "buttons": 0,
+      "psp_x": 128,
+      "psp_y": 128
+    },
+    {
+      "start": 1593,
+      "end": 1600,
+      "buttons": 32,
+      "psp_x": 128,
+      "psp_y": 128
+    },
+    {
+      "start": 1601,
+      "end": 1608,
+      "buttons": 0,
+      "psp_x": 128,
+      "psp_y": 128
+    },
+    {
+      "start": 1609,
+      "end": 1616,
+      "buttons": 32,
+      "psp_x": 128,
+      "psp_y": 128
+    },
+    {
+      "start": 1617,
+      "end": 1624,
+      "buttons": 0,
+      "psp_x": 128,
+      "psp_y": 128
+    },
+    {
+      "start": 1625,
+      "end": 1632,
+      "buttons": 32768,
+      "psp_x": 128,
+      "psp_y": 128
+    },
+    {
+      "start": 1633,
+      "end": 1640,
+      "buttons": 0,
+      "psp_x": 128,
+      "psp_y": 128
+    },
+    {
+      "start": 1641,
+      "end": 1648,
+      "buttons": 128,
+      "psp_x": 128,
+      "psp_y": 128
+    },
+    {
+      "start": 1649,
+      "end": 1656,
+      "buttons": 0,
+      "psp_x": 128,
+      "psp_y": 128
+    },
+    {
+      "start": 1657,
+      "end": 1664,
+      "buttons": 128,
+      "psp_x": 128,
+      "psp_y": 128
+    },
+    {
+      "start": 1665,
+      "end": 1672,
+      "buttons": 0,
+      "psp_x": 128,
+      "psp_y": 128
+    },
+    {
+      "start": 1673,
+      "end": 1680,
+      "buttons": 16,
+      "psp_x": 128,
+      "psp_y": 128
+    },
+    {
+      "start": 1681,
+      "end": 1688,
+      "buttons": 0,
+      "psp_x": 128,
+      "psp_y": 128
+    },
+    {
+      "start": 1689,
+      "end": 1696,
+      "buttons": 64,
+      "psp_x": 128,
+      "psp_y": 128
+    },
+    {
+      "start": 1697,
+      "end": 1704,
+      "buttons": 0,
+      "psp_x": 128,
+      "psp_y": 128
+    },
+    {
+      "start": 1705,
+      "end": 1712,
+      "buttons": 64,
+      "psp_x": 128,
+      "psp_y": 128
+    },
+    {
+      "start": 1713,
+      "end": 1720,
+      "buttons": 0,
+      "psp_x": 128,
+      "psp_y": 128
+    },
+    {
+      "start": 1721,
+      "end": 1728,
+      "buttons": 64,
+      "psp_x": 128,
+      "psp_y": 128
+    },
+    {
+      "start": 1729,
+      "end": 1736,
+      "buttons": 0,
+      "psp_x": 128,
+      "psp_y": 128
+    },
+    {
+      "start": 1737,
+      "end": 1744,
+      "buttons": 64,
+      "psp_x": 128,
+      "psp_y": 128
+    },
+    {
+      "start": 1745,
+      "end": 1752,
+      "buttons": 0,
+      "psp_x": 128,
+      "psp_y": 128
+    },
+    {
+      "start": 1753,
+      "end": 1760,
+      "buttons": 64,
+      "psp_x": 128,
+      "psp_y": 128
+    },
+    {
+      "start": 1761,
+      "end": 1768,
+      "buttons": 0,
+      "psp_x": 128,
+      "psp_y": 128
+    },
+    {
+      "start": 1769,
+      "end": 1776,
+      "buttons": 64,
+      "psp_x": 128,
+      "psp_y": 128
+    },
+    {
+      "start": 1777,
+      "end": 1784,
+      "buttons": 0,
+      "psp_x": 128,
+      "psp_y": 128
+    },
+    {
+      "start": 1785,
+      "end": 1792,
+      "buttons": 16384,
+      "psp_x": 128,
+      "psp_y": 128
+    },
+    {
+      "start": 1793,
+      "end": 1816,
+      "buttons": 0,
+      "psp_x": 128,
+      "psp_y": 128
+    },
+    {
+      "start": 1817,
+      "end": 1824,
+      "buttons": 16384,
+      "psp_x": 128,
+      "psp_y": 128
+    },
+    {
+      "start": 1825,
+      "end": 1848,
+      "buttons": 0,
+      "psp_x": 128,
+      "psp_y": 128
+    },
+    {
+      "start": 1849,
+      "end": 1856,
+      "buttons": 64,
+      "psp_x": 128,
+      "psp_y": 128
+    },
+    {
+      "start": 1857,
+      "end": 1864,
+      "buttons": 0,
+      "psp_x": 128,
+      "psp_y": 128
+    },
+    {
+      "start": 1865,
+      "end": 1872,
+      "buttons": 16384,
+      "psp_x": 128,
+      "psp_y": 128
+    },
+    {
+      "start": 1873,
+      "end": 1896,
+      "buttons": 0,
+      "psp_x": 128,
+      "psp_y": 128
+    },
+    {
+      "start": 1897,
+      "end": 1904,
+      "buttons": 32,
+      "psp_x": 128,
+      "psp_y": 128
+    },
+    {
+      "start": 1905,
+      "end": 1912,
+      "buttons": 0,
+      "psp_x": 128,
+      "psp_y": 128
+    },
+    {
+      "start": 1913,
+      "end": 1920,
+      "buttons": 64,
+      "psp_x": 128,
+      "psp_y": 128
+    },
+    {
+      "start": 1921,
+      "end": 1928,
+      "buttons": 0,
+      "psp_x": 128,
+      "psp_y": 128
+    },
+    {
+      "start": 1929,
+      "end": 1936,
+      "buttons": 64,
+      "psp_x": 128,
+      "psp_y": 128
+    },
+    {
+      "start": 1937,
+      "end": 1944,
+      "buttons": 0,
+      "psp_x": 128,
+      "psp_y": 128
+    },
+    {
+      "start": 1945,
+      "end": 1952,
+      "buttons": 16384,
+      "psp_x": 128,
+      "psp_y": 128
+    },
+    {
+      "start": 1953,
+      "end": 1960,
+      "buttons": 0,
+      "psp_x": 128,
+      "psp_y": 128
+    },
+    {
+      "start": 1961,
+      "end": 2144,
+      "buttons": 0,
+      "psp_x": 128,
+      "psp_y": 128
+    },
+    {
+      "start": 2145,
+      "end": 2156,
+      "buttons": 16384,
+      "psp_x": 128,
+      "psp_y": 128
+    },
+    {
+      "start": 2157,
+      "end": 2276,
+      "buttons": 0,
+      "psp_x": 128,
+      "psp_y": 128
+    },
+    {
+      "start": 2277,
+      "end": 2288,
+      "buttons": 16384,
+      "psp_x": 128,
+      "psp_y": 128
+    },
+    {
+      "start": 2289,
+      "end": 2648,
+      "buttons": 0,
+      "psp_x": 128,
+      "psp_y": 128
+    }
+  ],
+  "selection_verified": false
+}

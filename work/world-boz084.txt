@@ -1,0 +1,13 @@
+RS_WORLD 2 -0.833333333333333 -0.833333333333333 0.833333333333333 91.9487870638889 -22.6724569244444 16.0617649722222 12
+"D:/Programming/GitHub/RenegadeSquadronPC/work/map-resolved084/BOZ/msh/boz_east.msh"
+"D:/Programming/GitHub/RenegadeSquadronPC/work/map-resolved084/BOZ/msh/boz_grass_a.msh"
+"D:/Programming/GitHub/RenegadeSquadronPC/work/map-resolved084/BOZ/msh/boz_grass_b.msh"
+"D:/Programming/GitHub/RenegadeSquadronPC/work/map-resolved084/BOZ/msh/boz_grass_c.msh"
+"D:/Programming/GitHub/RenegadeSquadronPC/work/map-resolved084/BOZ/msh/boz_grass_d.msh"
+"D:/Programming/GitHub/RenegadeSquadronPC/work/map-resolved084/BOZ/msh/boz_north.msh"
+"D:/Programming/GitHub/RenegadeSquadronPC/work/map-resolved084/BOZ/msh/boz_northeast.msh"
+"D:/Programming/GitHub/RenegadeSquadronPC/work/map-resolved084/BOZ/msh/boz_northwest.msh"
+"D:/Programming/GitHub/RenegadeSquadronPC/work/map-resolved084/BOZ/msh/boz_south.msh"
+"D:/Programming/GitHub/RenegadeSquadronPC/work/map-resolved084/BOZ/msh/boz_southeast.msh"
+"D:/Programming/GitHub/RenegadeSquadronPC/work/map-resolved084/BOZ/msh/boz_southwest.msh"
+"D:/Programming/GitHub/RenegadeSquadronPC/work/map-resolved084/BOZ/msh/boz_statue.msh"

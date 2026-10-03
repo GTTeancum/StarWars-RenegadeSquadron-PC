@@ -1,0 +1,76 @@
+{
+  "branch_requested": "gc",
+  "confirm_count": 0,
+  "choice": 0,
+  "renderer": "software",
+  "final_vblank": 1608,
+  "capture_vblank": 1607,
+  "steps": [
+    {
+      "start": 1401,
+      "end": 1408,
+      "buttons": 16384,
+      "psp_x": 128,
+      "psp_y": 128
+    },
+    {
+      "start": 1409,
+      "end": 1448,
+      "buttons": 0,
+      "psp_x": 128,
+      "psp_y": 128
+    },
+    {
+      "start": 1449,
+      "end": 1456,
+      "buttons": 64,
+      "psp_x": 128,
+      "psp_y": 128
+    },
+    {
+      "start": 1457,
+      "end": 1464,
+      "buttons": 0,
+      "psp_x": 128,
+      "psp_y": 128
+    },
+    {
+      "start": 1465,
+      "end": 1472,
+      "buttons": 64,
+      "psp_x": 128,
+      "psp_y": 128
+    },
+    {
+      "start": 1473,
+      "end": 1480,
+      "buttons": 0,
+      "psp_x": 128,
+      "psp_y": 128
+    },
+    {
+      "start": 1481,
+      "end": 1488,
+      "buttons": 16384,
+      "psp_x": 128,
+      "psp_y": 128
+    },
+    {
+      "start": 1489,
+      "end": 1528,
+      "buttons": 0,
+      "psp_x": 128,
+      "psp_y": 128
+    },
+    {
+      "start": 1529,
+      "end": 1608,
+      "buttons": 0,
+      "psp_x": 128,
+      "psp_y": 128
+    }
+  ],
+  "menu_route_source": "Observed historical source065 Single Player menu; fresh actual capture determines current options",
+  "replay_sha256": "f80ccf422b98e85f5b6868a4ce84a5f0dfe010c82d3f794a9c5dae38a7540407",
+  "selection_verified": false
+}

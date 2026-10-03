@@ -1,0 +1,3 @@
+# Choose Yes to load an existing profile. Native controller input only.
+1000 1007 16384 128 128
+1008 1139 0 128 128

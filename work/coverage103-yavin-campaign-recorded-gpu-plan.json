@@ -1,0 +1,12 @@
+{
+  "name": "coverage103-yavin-campaign-recorded-gpu",
+  "final_vblank": 14512,
+  "capture_vblank": 14511,
+  "renderer": "gpu",
+  "input_scope": "Preserved legacy PSP recording plus normal Cross/neutral continuation; not modern or deterministic acceptance.",
+  "original_recording": "work/checkpoint009/replays/yavin-first-victory007.txt",
+  "original_recording_sha256": "8a4e354b8bfbecf29ac64b982d9e846ddd06e05596f7e9a0b45c612f58a41506",
+  "replay_sha256": "bfc8c678640c5ecbcdf3783e4256d755efa2a33f9a4b009d42604cb81181fe24",
+  "historical_only": "Linux checkpoint007 victory at 13512; current outcome and second-mission opens must be inspected.",
+  "intermediate_capture_scope": "480x272 software reference snapshots at 13512 and 13962; final GPU is actual 1280x720."
+}

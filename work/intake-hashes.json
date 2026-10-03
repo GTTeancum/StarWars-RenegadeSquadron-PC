@@ -1,0 +1,14 @@
+[
+  {
+    "File": "RenegadeSquadron-Intake-20260921-050012-57dbbb-000.zip",
+    "Expected": "b5a48421508d1d2a4d83fd0d6b0405bb6a1d368cc595b01bc05985d3be7ee6b4",
+    "Actual": "b5a48421508d1d2a4d83fd0d6b0405bb6a1d368cc595b01bc05985d3be7ee6b4",
+    "Match": true
+  },
+  {
+    "File": "RenegadeSquadron-Intake-20260921-050012-57dbbb-001.zip",
+    "Expected": "ea9b77714c8ec2f93965f662edba55273135dde10df22269b6ef92b638784eea",
+    "Actual": "ea9b77714c8ec2f93965f662edba55273135dde10df22269b6ef92b638784eea",
+    "Match": true
+  }
+]
