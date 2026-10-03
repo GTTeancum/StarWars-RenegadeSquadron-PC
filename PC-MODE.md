@@ -19,6 +19,7 @@ second with all features on, against about 1.5 before this work.
 | Bloom | Bright-pass, 4-tap blur passes, added before the HUD | Asura PC `FSFX_SM30_Bloom.fx` |
 | Normal maps | `textures/<id>_n.png` (or `.dds`/`.tga`) next to replacement textures | Asura PC `NormalMap.fxh` |
 | System messages | PSP message boxes drawn as a GPU overlay | new |
+| Text entry | Profile names typed on the PC keyboard (Enter confirm, Esc cancel; controller A/B) in place of the PSP on-screen keyboard | new |
 
 ## Launcher options
 
@@ -55,6 +56,10 @@ Debug views: `RENEGADE_PER_PIXEL_LIGHTING=normals` (surface directions as colour
 - **Sun direction.** Renegade lights each object with three single-colour directional lights sharing one
   direction (the PSP form of Asura's spherical-harmonic lighting). The sun is their brightness-weighted
   average over the frame's shadow casters; the world geometry itself carries no directional light.
+- **Shadow casters.** Renegade's world geometry carries no lights: its lighting, including roofs blocking the
+  sun and interior lamps, is baked into vertex colour, and characters are lit from light samples taken at
+  their position. Real-time shadows therefore come only from characters, objects and vehicles (anything
+  carrying lights); the static world relies on its baked shading, so interiors are not darkened twice.
 - **Shared lighting space.** Renegade folds the camera into object matrices but draws terrain with a real
   view matrix; per-pixel lit draws are converted to camera space so terrain, objects, lights and the
   shadow map agree.
@@ -67,7 +72,5 @@ Debug views: `RENEGADE_PER_PIXEL_LIGHTING=normals` (surface directions as colour
 
 ## Known issues
 
-- Sun shadows darken some interiors that the game already lights as indoors (`-NoShadows` avoids it).
 - Shadows follow the camera's rotation; slight shimmer when turning is possible.
 - Frame-to-frame timing varies slightly around 16.7 ms.
-- The PSP on-screen keyboard (profile name entry) is not implemented; the game stops there.

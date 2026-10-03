@@ -27,12 +27,10 @@ Playable, with known issues.
 - Texture replacement packs, including normal maps (see [OVERRIDES.md](OVERRIDES.md) and
   [PC-MODE.md](PC-MODE.md)).
 - Modern twin-stick controls with Xbox/XInput controllers (see [MODERN-CONTROLS.md](MODERN-CONTROLS.md)).
+- Text entry (profile names) uses the PC keyboard in place of the PSP on-screen keyboard.
 
 Known issues:
 
-- The PSP on-screen keyboard is not implemented. Entering a profile name stops the game.
-- Sun shadows darken some interiors that the game already lights as indoors. Use `-NoShadows` if this
-  bothers you.
 - Frame-to-frame timing is slightly uneven around 60 fps.
 
 ## Requirements

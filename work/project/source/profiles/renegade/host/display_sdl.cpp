@@ -29,6 +29,14 @@ unsigned tw{},th{}; bool closed{},focused{},menu_open{};
 // presents each finished frame itself. SDL keeps only the window, events and
 // controllers; no SDL renderer exists, so nothing else draws into the window.
 bool direct_present{};
+// PC replacement for the PSP on-screen keyboard: while the game requests text
+// (sceUtilityOsk*), typed keys edit this field instead of reaching the game.
+struct TextEntry {
+ bool active{},done{},cancelled{};
+ std::string title,text;
+ std::size_t limit{16};
+ std::uint32_t previous_pad{};
+} text_entry;
 bool inspect_textures{};std::uint32_t inspection_framebuffer{};
 int choice=1,hover=1;
 std::array<bool,SDL_NUM_SCANCODES> keys{};
@@ -157,7 +165,29 @@ struct Canvas {
    for(int j=0;j<7;++j)for(int i=0;i<5;++i)if(rows[j]&(1u<<(4-i)))fill(x+i*scale,y+j*scale,scale,scale,c);x+=6*scale;}
  }
 };
+// Text entry panel, drawn through fill/text callbacks so the SDL renderer and
+// the direct-GPU RGBA canvas share one layout.
+template<class Fill,class Text>
+void draw_text_entry(int ww,int wh,int top,int scale,Fill&& fill_rect,Text&& draw_text) {
+ const int margin=12*scale,panel_width=std::min(ww-24,900),height=58*scale;
+ const int x=(ww-panel_width)/2,y=top+std::max(8,(wh-top-height)/2);
+ fill_rect(x,y,panel_width,height,SDL_Color{24,31,43,240});
+ fill_rect(x,y,panel_width,2,SDL_Color{99,179,225,255});
+ draw_text(x+margin,y+10*scale,text_entry.title.empty()?std::string("ENTER TEXT"):text_entry.title,SDL_Color{162,213,245,255},scale);
+ const std::string shown=text_entry.text+((SDL_GetTicks()/400)%2?"_":" ");
+ fill_rect(x+margin-4,y+24*scale,panel_width-2*margin+8,13*scale,SDL_Color{12,16,24,255});
+ draw_text(x+margin,y+27*scale,shown,SDL_Color{238,243,250,255},scale);
+ draw_text(x+margin,y+44*scale,"TYPE ON KEYBOARD - ENTER: CONFIRM  ESC: CANCEL",SDL_Color{194,212,233,255},scale);
+}
 bool draw_message_dialog_rgba(std::vector<std::byte>& rgba,unsigned ww,unsigned wh) {
+ if(text_entry.active) {
+  rgba.assign(std::size_t(ww)*wh*4,std::byte{0});
+  Canvas canvas{ww,wh,rgba};
+  draw_text_entry(int(ww),int(wh),0,2,
+   [&](int x,int y,int w,int h,SDL_Color c){canvas.fill(x,y,w,h,c);},
+   [&](int x,int y,const std::string& s,SDL_Color c,int scale){canvas.text(x,y,s,c,scale);});
+  return true;
+ }
  if(!message_view.visible)return false;
  rgba.assign(std::size_t(ww)*wh*4,std::byte{0});
  Canvas canvas{ww,wh,rgba};
@@ -216,6 +246,12 @@ void render(bool present=true) {
   int y=ui::toolbar_height+14;for(const auto& line:lines){text(14,y,line,{229,236,244,255},1);y+=15;}
  }
  draw_message_dialog(ww,wh);
+ if(text_entry.active) {
+  const int scale=ww>=800?2:1;
+  draw_text_entry(ww,wh,ui::toolbar_height,scale,
+   [&](int x,int y,int w,int h,SDL_Color c){fill({x,y,w,h},c);},
+   [&](int x,int y,const std::string& s,SDL_Color c,int sc){text(x,y,s,c,sc);});
+ }
  if(menu_open) {
   fill({ui::selector.x,ui::toolbar_height,ui::selector.w,int(ui::resolutions.size())*ui::row_height},{28,36,48,255});
   for(int i=0;i<int(ui::resolutions.size());++i) {
@@ -237,6 +273,23 @@ void poll(){if(!window)return;bool dirty=false;SDL_Event e;while(SDL_PollEvent(&
   if(e.window.event==SDL_WINDOWEVENT_FOCUS_LOST){focused=false;menu_open=false;clear_input();dirty=true;}
   if(e.window.event==SDL_WINDOWEVENT_FOCUS_GAINED){focused=true;clear_input();}
   if(e.window.event==SDL_WINDOWEVENT_SIZE_CHANGED || e.window.event==SDL_WINDOWEVENT_EXPOSED)dirty=true;
+ }
+ if(text_entry.active && !text_entry.done) {
+  if(e.type==SDL_TEXTINPUT) {
+   for(const char* c=e.text.text;*c;++c) {
+    const unsigned char ch=static_cast<unsigned char>(*c);
+    if(ch>=32&&ch<127&&text_entry.text.size()<text_entry.limit)text_entry.text.push_back(char(ch));
+   }
+   dirty=true;continue;
+  }
+  if(e.type==SDL_KEYDOWN) {
+   const auto sc=e.key.keysym.scancode;
+   if(sc==SDL_SCANCODE_BACKSPACE&&!text_entry.text.empty())text_entry.text.pop_back();
+   else if(sc==SDL_SCANCODE_RETURN||sc==SDL_SCANCODE_KP_ENTER)text_entry.done=true;
+   else if(sc==SDL_SCANCODE_ESCAPE){text_entry.done=true;text_entry.cancelled=true;}
+   dirty=true;continue;
+  }
+  if(e.type==SDL_KEYUP)continue;
  }
  if(e.type==SDL_MOUSEBUTTONDOWN && e.button.windowID==SDL_GetWindowID(window) && e.button.button==SDL_BUTTON_LEFT) {
   if(ui::inside(ui::selector,e.button.x,e.button.y)){if(menu_open)menu_open=false;else open_menu();clear_input();dirty=true;continue;}
@@ -276,7 +329,7 @@ void poll(){if(!window)return;bool dirty=false;SDL_Event e;while(SDL_PollEvent(&
  }
  if(dirty)render();
 }
-HostInputState sample(){poll();HostInputState s;if(!window||!focused||menu_open||closed)return s;
+HostInputState sample(){poll();HostInputState s;if(!window||!focused||menu_open||closed||text_entry.active)return s;
  const std::pair<SDL_Scancode,unsigned> mapping[]={
  {SDL_SCANCODE_BACKSPACE,1},{SDL_SCANCODE_RETURN,8},{SDL_SCANCODE_UP,0x10},{SDL_SCANCODE_RIGHT,0x20},{SDL_SCANCODE_DOWN,0x40},{SDL_SCANCODE_LEFT,0x80},
  {SDL_SCANCODE_LSHIFT,0x100},{SDL_SCANCODE_RCTRL,0x200},{SDL_SCANCODE_Q,0x100},{SDL_SCANCODE_R,0x200},{SDL_SCANCODE_E,0x1000},{SDL_SCANCODE_C,0x2000},{SDL_SCANCODE_SPACE,0x4000},{SDL_SCANCODE_Z,0x4000},{SDL_SCANCODE_X,0x2000},{SDL_SCANCODE_F,0x8000}};
@@ -294,12 +347,59 @@ void display_window_set_message_dialog(const MessageDialogView& view) {
  message_view=view; if(message_view.text.size()>512)message_view.text.resize(512); render();
 }
 MessageDialogView display_window_message_dialog() { return message_view; }
+void display_window_begin_text_entry(const std::string& title,const std::string& initial,std::size_t limit) {
+ text_entry=TextEntry{};
+ text_entry.active=true;text_entry.title=title;text_entry.limit=std::max<std::size_t>(1,limit);
+ text_entry.text=initial.substr(0,text_entry.limit);
+ if(window){
+  SDL_StartTextInput();
+  text_entry.previous_pad=0xFFFFFFFFu;  // ignore buttons already held when the dialog opens
+ } else {
+  // No window (headless replays/tests): accept RENEGADE_OSK_TEXT or the suggested text.
+  if(const char* v=std::getenv("RENEGADE_OSK_TEXT"))text_entry.text=std::string(v).substr(0,text_entry.limit);
+  text_entry.done=true;
+ }
+ std::cerr<<"[text-entry] begin title=\""<<title<<"\" initial=\""<<initial<<"\" limit="<<limit<<"\n";
+ render();
+}
+bool display_window_text_entry_result(std::string& text,bool& cancelled) {
+ if(!text_entry.active)return false;
+ poll();
+ if(!text_entry.done&&pad) {
+  // Controller: A/Start confirm the shown text, B cancels.
+  std::uint32_t now=0;
+  if(SDL_GameControllerGetButton(pad,SDL_CONTROLLER_BUTTON_A))now|=1u;
+  if(SDL_GameControllerGetButton(pad,SDL_CONTROLLER_BUTTON_START))now|=2u;
+  if(SDL_GameControllerGetButton(pad,SDL_CONTROLLER_BUTTON_B))now|=4u;
+  const std::uint32_t edge=text_entry.previous_pad==0xFFFFFFFFu?0u:(now&~text_entry.previous_pad);
+  text_entry.previous_pad=now;
+  if(edge&3u)text_entry.done=true;
+  else if(edge&4u){text_entry.done=true;text_entry.cancelled=true;}
+ }
+ if(window)render();
+ if(!text_entry.done)return false;
+ text=text_entry.text;cancelled=text_entry.cancelled;
+ return true;
+}
+void display_window_end_text_entry() {
+ if(text_entry.active&&window)SDL_StopTextInput();
+ text_entry=TextEntry{};
+ clear_input();
+ if(window)render();
+}
 // RGBA overlay of the current PSP system message for direct GPU presentation.
 bool display_window_dialog_overlay(std::vector<std::byte>& rgba,unsigned& width,unsigned& height) {
  // RENEGADE_DIALOG_OVERLAY_TEST=1 draws it without a window, for GPU captures.
  static const bool headless_test=on("RENEGADE_DIALOG_OVERLAY_TEST");
  if(!direct_present&&!headless_test)return false;
  width=960;height=544;
+ if(headless_test&&!text_entry.active&&std::string(std::getenv("RENEGADE_DIALOG_OVERLAY_TEST"))=="text") {
+  // Test-only sample of the PC text entry box.
+  text_entry.active=true;text_entry.title="NEW PROFILE NAME";text_entry.text="Col Serra";
+  const bool drawn=draw_message_dialog_rgba(rgba,width,height);
+  text_entry=TextEntry{};
+  return drawn;
+ }
  if(headless_test&&!message_view.visible) {
   // Test-only sample message so the overlay can be captured without a guest dialog.
   const MessageDialogView saved=message_view;

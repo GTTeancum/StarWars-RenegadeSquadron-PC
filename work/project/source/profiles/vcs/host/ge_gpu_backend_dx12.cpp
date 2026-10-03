@@ -4576,9 +4576,20 @@ bool ge_gpu_backend_finish_color_frame(std::uint64_t vblank) noexcept {
     // directional lights sharing one dominant direction, the PSP form of
     // Asura's spherical-harmonic lighting).
     const ShadowSettings &shadow = shadow_settings();
+    // Static world geometry carries no lights (its lighting, including the sun's
+    // occlusion by roofs and interior lamps, is baked into vertex colour), so it
+    // does not cast: only light-probe-lit dynamic things (characters, objects,
+    // vehicles) cast, onto everything.
+    const auto has_lights = [&](std::uint32_t slot) {
+        const GeGpuLighting &lights = s.lighting_blocks[slot - 1u];
+        for (std::size_t n = 0u; n < 4u; ++n)
+            if (lights.rows[7u + n * 6u + 4u][3] != 0.0f) return true;
+        return false;
+    };
     const auto is_shadow_caster = [&](const Dx12Batch &batch) {
         return batch.hardware_transform && !batch.packed_0115 && batch.transform.lighting_slot != 0u &&
                batch.transform.lighting_slot <= s.lighting_blocks.size() &&
+               has_lights(batch.transform.lighting_slot) &&
                batch.draw.depth_write_enabled && blend_variant(batch.draw) == 0u &&
                !batch.framebuffer_feedback && !batch.draw.through && !batch.draw.clear_mode &&
                (batch.draw.framebuffer_address & 0x001FFFF0u) == s.display_framebuffer;

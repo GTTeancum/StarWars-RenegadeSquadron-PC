@@ -2197,6 +2197,27 @@ void message_visibility(bool visible) {
     message_utility.view.visible=visible;
     display_window_set_message_dialog(message_utility.view);
 }
+// PSP on-screen keyboard (sceUtilityOsk*), answered by typing on the PC
+// keyboard. Guest layout per PSPSDK psputility_osk.h: SceUtilityOskParams =
+// 48-byte common header, datacount @48, data @52; SceUtilityOskData (52 bytes)
+// = desc @28, intext @32, outtextlength @36, outtext @40, result @44,
+// outtextlimit @48; strings are UTF-16.
+struct OskUtilityState {
+    UtilityStatus status{UtilityStatus::None};
+    std::uint32_t parameter{}, data{};
+    std::string initial;
+};
+OskUtilityState osk_utility{};
+std::string read_guest_utf16(const psprecomp::GuestMemory& memory, std::uint32_t address, std::size_t max_chars) {
+    std::string out;
+    for (std::size_t i = 0; address && i < max_chars && memory.contains(address + 2u * i, 2u); ++i) {
+        const std::uint16_t c = memory.load16(address + 2u * static_cast<std::uint32_t>(i));
+        if (c == 0u) break;
+        out.push_back(c >= 32u && c < 127u ? static_cast<char>(c) : '?');
+    }
+    return out;
+}
+
 void message_finish(psprecomp::Runtime& rt,std::uint32_t button) {
     auto& m=message_utility;
     if(!rt.memory().contains(m.parameter,m.size))throw psprecomp::Error("Message parameter invalidated while active");
@@ -5456,7 +5477,7 @@ void install_profile(psprecomp::Runtime &runtime, std::uint32_t user_arena_start
     memory_stick_fat_state = 1u;
     controller_state = ControllerState{};
     savedata_utility = SavedataUtilityState{};
-    message_utility = {}; display_window_set_message_dialog({});
+    message_utility = {}; display_window_set_message_dialog({}); osk_utility = {};
     deflate_fast_pending.clear();
     collision_chain_trace_stack.clear();
     psprecomp::set_runtime_post_import_hook(&vcs_post_import_hook);
@@ -7381,6 +7402,69 @@ void install_profile(psprecomp::Runtime &runtime, std::uint32_t user_arena_start
         [](psprecomp::Runtime& rt,psprecomp::AllegrexContext& ctx) {
             if(message_utility.status!=UtilityStatus::Init&&message_utility.status!=UtilityStatus::Visible){ctx.set_gpr(2,0x80110001u);return;}
             message_finish(rt,0);set_success(ctx);
+        });
+
+    // sceUtilityOskInitStart
+    runtime.register_hle("sceUtility", 0xF6269B82u,
+        [](psprecomp::Runtime& rt,psprecomp::AllegrexContext& ctx) {
+            if(osk_utility.status!=UtilityStatus::None||message_utility.status!=UtilityStatus::None||
+               savedata_utility.status!=UtilityStatus::None){ctx.set_gpr(2,0x80110001u);return;}
+            auto& memory=rt.memory();const auto p=ctx.gpr[4];
+            if(!p||!memory.contains(p,64u)||memory.load32(p)<64u){ctx.set_gpr(2,0x80110004u);return;}
+            const auto count=memory.load32(p+48u),data=memory.load32(p+52u);
+            if(count<1u||!memory.contains(data,52u)){ctx.set_gpr(2,0x80110004u);return;}
+            const auto out_length=memory.load32(data+36u),out_text=memory.load32(data+40u);
+            const auto out_limit=memory.load32(data+48u);
+            if(!out_text||out_length<2u||!memory.contains(out_text,2u*out_length)){ctx.set_gpr(2,0x80110004u);return;}
+            std::size_t limit=out_length-1u;
+            if(out_limit!=0u)limit=std::min<std::size_t>(limit,out_limit);
+            limit=std::clamp<std::size_t>(limit,1u,255u);
+            const std::string title=read_guest_utf16(memory,memory.load32(data+28u),64u);
+            OskUtilityState next;next.status=UtilityStatus::Init;next.parameter=p;next.data=data;
+            next.initial=read_guest_utf16(memory,memory.load32(data+32u),limit);
+            memory.store32(p+0x1cu,0u);
+            osk_utility=std::move(next);
+            display_window_begin_text_entry(title,osk_utility.initial,limit);
+            set_success(ctx);
+        });
+    // sceUtilityOskGetStatus
+    runtime.register_hle("sceUtility", 0xF3F76017u,
+        [](psprecomp::Runtime&,psprecomp::AllegrexContext& ctx) {
+            const auto state=osk_utility.status;ctx.set_gpr(2,static_cast<std::uint32_t>(state));
+            if(state==UtilityStatus::Init)osk_utility.status=UtilityStatus::Visible;
+            else if(state==UtilityStatus::Finished)osk_utility={};
+        });
+    // sceUtilityOskUpdate: completes once the player confirms or cancels.
+    runtime.register_hle("sceUtility", 0x4B85C861u,
+        [](psprecomp::Runtime& rt,psprecomp::AllegrexContext& ctx) {
+            auto& o=osk_utility;
+            if(o.status!=UtilityStatus::Visible){ctx.set_gpr(2,0x80110001u);return;}
+            std::string text;bool cancelled=false;
+            if(display_window_text_entry_result(text,cancelled)) {
+                auto& memory=rt.memory();
+                if(!memory.contains(o.data,52u))throw psprecomp::Error("OSK parameter invalidated while active");
+                const auto out_text=memory.load32(o.data+40u),out_length=memory.load32(o.data+36u);
+                if(cancelled)text=o.initial;
+                const std::size_t n=std::min<std::size_t>(text.size(),out_length>0u?out_length-1u:0u);
+                if(memory.contains(out_text,2u*(n+1u))) {
+                    for(std::size_t i=0;i<n;++i)
+                        memory.store16(out_text+2u*static_cast<std::uint32_t>(i),static_cast<std::uint16_t>(static_cast<unsigned char>(text[i])));
+                    memory.store16(out_text+2u*static_cast<std::uint32_t>(n),0u);
+                }
+                // PSP_UTILITY_OSK_RESULT: 0 unchanged, 1 cancelled, 2 changed.
+                memory.store32(o.data+44u,cancelled?1u:(text==o.initial?0u:2u));
+                memory.store32(o.parameter+0x1cu,0u);
+                o.status=UtilityStatus::Quit;
+                display_window_end_text_entry();
+                std::cerr<<"[text-entry] done "<<(cancelled?"cancelled":"confirmed")<<" text=\""<<text<<"\"\n";
+            }
+            set_success(ctx);
+        });
+    // sceUtilityOskShutdownStart
+    runtime.register_hle("sceUtility", 0x3DFAEBA9u,
+        [](psprecomp::Runtime&,psprecomp::AllegrexContext& ctx) {
+            if(osk_utility.status!=UtilityStatus::Quit){ctx.set_gpr(2,0x80110001u);return;}
+            osk_utility.status=UtilityStatus::Finished;set_success(ctx);
         });
 
     runtime.register_hle("sceUtility", 0x50C4CD57u,

@@ -5167,7 +5167,17 @@ bool render_ge_primitive(psprecomp::GuestMemory &memory,
                      << " world_t=(" << transform.world[9] << "," << transform.world[10] << "," << transform.world[11] << ")"
                      << " world_r0=(" << transform.world[0] << "," << transform.world[1] << "," << transform.world[2] << ")"
                      << " view_r0=(" << transform.view[0] << "," << transform.view[1] << "," << transform.view[2] << ")"
-                     << " view_t=(" << transform.view[9] << "," << transform.view[10] << "," << transform.view[11] << ")\n";
+                     << " view_t=(" << transform.view[9] << "," << transform.view[10] << "," << transform.view[11] << ")";
+                line << " lights:";
+                for (const PreparedLight &light : prepared_lighting.lights)
+                    if (light.enabled)
+                        line << " type" << light.type << "/comp" << light.computation << "/diff("
+                             << light.diffuse.r << "," << light.diffuse.g << "," << light.diffuse.b << ")/att("
+                             << light.attenuation.x << "," << light.attenuation.y << "," << light.attenuation.z << ")";
+                line << " amb=(" << prepared_lighting.global_ambient.r << "," << prepared_lighting.global_ambient.g
+                     << "," << prepared_lighting.global_ambient.b << ") mat_update=" << prepared_lighting.material_update
+                     << " emissive=(" << prepared_lighting.emissive.r << "," << prepared_lighting.emissive.g << ","
+                     << prepared_lighting.emissive.b << ")\n";
                 std::cerr << line.str();
             }
         }
