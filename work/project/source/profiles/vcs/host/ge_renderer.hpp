@@ -17,6 +17,9 @@ std::vector<std::uint8_t> ge_hd_frame_fxaa_rgb(std::uint32_t address, std::uint3
 std::vector<std::uint8_t> ge_fxaa_rgb(const std::vector<std::uint8_t>& rgb, unsigned width, unsigned height);
 // Probe the last visible scene/UI fragment at a guest-space location (center by default).
 void ge_set_texture_inspection(bool enabled, unsigned x = 240, unsigned y = 136);
+// Video Options switches (start-up values come from RENEGADE_PER_PIXEL_LIGHTING / RENEGADE_SHADOWS).
+void ge_set_per_pixel_lighting(bool enabled) noexcept;
+void ge_set_receive_shadows(bool enabled) noexcept;
 std::vector<std::string> ge_texture_inspection_lines(std::uint32_t address);
 struct GeOverrideGpuStats {std::uint64_t draws{},uploads{},alpha_uploads{};unsigned max_width{},max_height{};};
 GeOverrideGpuStats ge_override_gpu_stats() noexcept;

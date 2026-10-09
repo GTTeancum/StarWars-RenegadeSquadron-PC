@@ -14,8 +14,8 @@ param(
     [switch]$NoShadows,
     [switch]$SmoothFog,
 
-    [double]$LookX = 1.0,
-    [double]$LookY = 1.0,
+    [double]$LookX = 0.5,
+    [double]$LookY = 0.5,
     [double]$LookCurve = 1.0,
     [double]$LeftDeadzone = 0.2394,
     [double]$RightDeadzone = 0.2652,

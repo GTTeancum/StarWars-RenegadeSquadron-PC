@@ -13,6 +13,7 @@ Config cfg;
 Frame now;
 Frame unfiltered009;
 bool initialized=false;
+bool kbm_active=false; // which device spoke last: the keyboard/mouse or the pad
 std::uint64_t frame=0,last_polled=~std::uint64_t(0),diagnostic_sequence=0;
 std::array<bool,28> previous{},pending{};
 std::array<bool,28> delivered_interaction{};
@@ -94,7 +95,10 @@ Config config_from_environment() {
  const char* invert=std::getenv("RENEGADE_INVERT_Y");
  if(invert&&std::string(invert)!="0"&&std::string(invert)!="1")
   throw psprecomp::Error("RENEGADE_INVERT_Y must be 0 or 1");
- c.invert_y=invert&&*invert=='1';return c;
+ c.invert_y=invert&&*invert=='1';
+ c.mouse_sensitivity=env_float("RENEGADE_MOUSE_SENSITIVITY",1,.05f,10);
+ const char* minvert=std::getenv("RENEGADE_MOUSE_INVERT_Y");
+ c.mouse_invert_y=minvert&&*minvert=='1';return c;
 }
 Frame normalize(const RawPad& r,const Config& c) {
  validate(c);Frame f;f.active=r.connected;f.enabled=r.enabled&&r.connected;
@@ -103,6 +107,13 @@ Frame normalize(const RawPad& r,const Config& c) {
  auto right=stick(r.rx,r.ry,c.right_deadzone,c.curve);
  f.move_x=l[0];f.move_y=-l[1];
  f.look_x=right[0]*c.look_x;f.look_y=-right[1]*c.look_y*(c.invert_y?-1.f:1.f);
+ if(r.mouse_look) {
+  // Mouse pixels this frame scaled to a stick deflection; the game applies
+  // its own turn rate to that, so a fast flick saturates at full deflection.
+  constexpr float pixels_for_full=40.f;
+  f.look_x=std::clamp(r.mouse_dx*c.mouse_sensitivity/pixels_for_full,-1.f,1.f);
+  f.look_y=std::clamp(-r.mouse_dy*c.mouse_sensitivity/pixels_for_full,-1.f,1.f)*(c.mouse_invert_y?-1.f:1.f);
+ }
  f.left_trigger=std::clamp(float(r.lt)/32767.f,0.f,1.f);
  f.right_trigger=std::clamp(float(r.rt)/32767.f,0.f,1.f);
  f.buttons=r.buttons&0x7fff;return f;
@@ -148,8 +159,15 @@ void frame_tick(std::uint64_t n) {
  last_polled=n;frame=n;
  if(!modern_enabled()){accept_sample(n,{});return;}
  const char* file=std::getenv("RENEGADE_GAMEPAD_DIAGNOSTIC");
- accept_sample(n,file?diagnostic_sample(file):live_gamepad());
+ if(file){accept_sample(n,diagnostic_sample(file));return;}
+ // Whichever device the player touched last owns the frame; a connected pad
+ // keeps the sample "connected" so a quiet keyboard still counts as a pad.
+ const RawPad pad=live_gamepad(),kbm=live_keyboard_mouse();
+ const bool pad_activity=pad.connected&&pad.enabled&&(pad.buttons||std::abs(int(pad.lx))>12000||std::abs(int(pad.ly))>12000||std::abs(int(pad.rx))>12000||std::abs(int(pad.ry))>12000||pad.lt>8000||pad.rt>8000);
+ if(kbm.activity)kbm_active=true; else if(pad_activity)kbm_active=false;
+ if(kbm_active&&kbm.enabled)accept_sample(n,kbm); else accept_sample(n,pad.connected?pad:kbm);
 }
+bool keyboard_mouse_active(){return kbm_active;}
 void quarantine_held_actions009() {
  // Observe only the most recent physical/diagnostic sample. Never alter PSP memory.
  // A button used by a menu must be released before it becomes a gameplay action.
@@ -163,6 +181,8 @@ void quarantine_held_actions009() {
  if(blocked_rt)now.right_trigger=0;
 }
 Frame current(){return now;}
+Config config(){if(!initialized)reset();return cfg;}
+void set_config(const Config& c){validate(c);if(!initialized)reset();cfg=c;}
 float trigger_threshold(){return cfg.trigger_threshold;}
 std::uint64_t frame_number(){return frame;}
 bool pending_action(unsigned i) {

@@ -3,6 +3,7 @@
 #include "ge_renderer.hpp"
 #include "display_ui.hpp"
 #include "message_dialog.hpp"
+#include "game_font.hpp"
 #include <cctype>
 #include "psprecomp/common.hpp"
 #include <SDL2/SDL.h>
@@ -40,11 +41,62 @@ struct TextEntry {
 bool inspect_textures{};std::uint32_t inspection_framebuffer{};
 int choice=1,hover=1;
 std::array<bool,SDL_NUM_SCANCODES> keys{};
+// Mouse state for keyboard/mouse play: motion accumulated between samples,
+// held buttons, wheel steps turned into one-sample presses.
+int mouse_dx=0,mouse_dy=0; std::array<bool,6> mouse_buttons{}; int wheel_up=0,wheel_down=0; bool mouse_moved=false;
+bool relative_mouse=false;
+// Pad-button bindings for the keyboard/mouse (RENEGADE_KEY_<button>, from the
+// settings file [Keyboard]). A binding names an SDL key ("Space", "Left Shift",
+// "E"), a mouse button (Mouse1..Mouse5) or the wheel (WheelUp, WheelDown).
+struct Binding { SDL_Scancode key=SDL_SCANCODE_UNKNOWN; int mouse=0; int wheel=0; };
+constexpr const char* binding_names[18]={"A","B","X","Y","Back","Guide","Start","LS","RS","LB","RB","Up","Down","Left","Right","LT","RT","Pause"};
+constexpr const char* binding_defaults[18]={"Space","C","E","Q","Tab","","Escape","Left Shift","V","F","Mouse3","R","G","WheelUp","WheelDown","Mouse2","Mouse1","Escape"};
+std::array<Binding,18> bindings{}; bool bindings_loaded=false;
+Binding parse_binding(const std::string& text) {
+ Binding b; if(text.empty())return b;
+ if(text.size()==6&&text.compare(0,5,"Mouse")==0&&text[5]>='1'&&text[5]<='5'){b.mouse=text[5]-'0';return b;}
+ if(text=="WheelUp"){b.wheel=1;return b;} if(text=="WheelDown"){b.wheel=-1;return b;}
+ b.key=SDL_GetScancodeFromName(text.c_str());
+ if(b.key==SDL_SCANCODE_UNKNOWN)std::cerr<<"[display-sdl] unknown key name \""<<text<<"\" in the keyboard settings\n";
+ return b;
+}
+void load_bindings() {
+ if(bindings_loaded)return; bindings_loaded=true;
+ for(int i=0;i<18;++i){const std::string name=std::string("RENEGADE_KEY_")+binding_names[i];const char* v=std::getenv(name.c_str());bindings[i]=parse_binding(v&&*v?v:binding_defaults[i]);}
+}
+bool binding_held(const Binding& b) {
+ if(b.key!=SDL_SCANCODE_UNKNOWN&&keys[b.key])return true;
+ if(b.mouse&&mouse_buttons[b.mouse])return true;
+ if(b.wheel>0&&wheel_up>0)return true; if(b.wheel<0&&wheel_down>0)return true;
+ return false;
+}
+void set_relative_mouse(bool on){if(on==relative_mouse||!window)return;relative_mouse=on;SDL_SetRelativeMouseMode(on?SDL_TRUE:SDL_FALSE);}
 std::string capture_request;
 MessageDialogView message_view;
+// Window size requested by settings (any WxH, not only the toolbar presets).
+int requested_width=0,requested_height=0; bool requested_fullscreen=false;
+// Asura PC applies the user's resolution/fullscreen choice to its window and
+// device (Asura_Direct3D_UserOptions); here SDL resizes the window and the
+// DX12 swapchain follows the client size. A 0x0 size means the desktop size.
+void apply_video_mode(int width,int height,bool fullscreen) {
+ if(!window)return;
+ if(width<=0||height<=0){SDL_DisplayMode desktop{};const int index=std::max(0,SDL_GetWindowDisplayIndex(window));
+  if(SDL_GetDesktopDisplayMode(index,&desktop)==0){width=desktop.w;height=desktop.h;}else{width=1280;height=720;}}
+ if(fullscreen){
+  SDL_DisplayMode mode{SDL_PIXELFORMAT_UNKNOWN,width,height,0,nullptr};
+  SDL_SetWindowDisplayMode(window,&mode);
+  if(SDL_SetWindowFullscreen(window,SDL_WINDOW_FULLSCREEN)!=0)std::cerr<<"[display-sdl] fullscreen failed: "<<SDL_GetError()<<"\n";
+ }else{
+  SDL_SetWindowFullscreen(window,0);
+  if(SDL_GetWindowFlags(window)&SDL_WINDOW_MAXIMIZED)SDL_RestoreWindow(window);
+  SDL_SetWindowSize(window,width,height+(direct_present?0:ui::toolbar_height));
+  SDL_SetWindowPosition(window,SDL_WINDOWPOS_CENTERED,SDL_WINDOWPOS_CENTERED);
+ }
+ std::cerr<<"[display-sdl] video mode "<<width<<"x"<<height<<(fullscreen?" fullscreen":" windowed")<<"\n";
+}
 bool on(const char* k){ const char* v=std::getenv(k);return v && *v && std::strcmp(v,"0")!=0; }
 void checked(int rc,const char* operation) { if(rc<0)throw psprecomp::Error(std::string(operation)+": "+SDL_GetError()); }
-void clear_input() { keys.fill(false); }
+void clear_input() { keys.fill(false); mouse_buttons.fill(false); mouse_dx=mouse_dy=0; wheel_up=wheel_down=0; mouse_moved=false; }
 // Small original stroke cells for UI labels. No runtime font asset/dependency.
 // Seven rows, most significant five bits are not used; columns read bit 4..0.
 std::array<unsigned char,7> glyph(char c) {
@@ -179,18 +231,78 @@ void draw_text_entry(int ww,int wh,int top,int scale,Fill&& fill_rect,Text&& dra
  draw_text(x+margin,y+27*scale,shown,SDL_Color{238,243,250,255},scale);
  draw_text(x+margin,y+44*scale,"TYPE ON KEYBOARD - ENTER: CONFIRM  ESC: CANCEL",SDL_Color{194,212,233,255},scale);
 }
+// Menu-styled overlay pieces: the game's fonts and the front end's colours
+// (dark translucent page, blue button bars, white lettering). Canvas is the
+// 960x544 overlay (2x PSP), so the fonts draw at an exact 2x.
+namespace themed {
+using renegade::game_font::Face;
+constexpr SDL_Color kPage{8,10,16,200},kBarDark{14,70,112,255},kBar{26,132,196,255},kBarEdge{120,200,240,255},kText{240,244,248,255},kDim{176,196,216,255};
+void bar(Canvas& c,int x,int y,int w,int h,bool bright){
+ c.fill(x,y,w,h,bright?kBar:kBarDark);c.fill(x,y,w,2,kBarEdge);c.fill(x,y+h-2,w,2,kBarEdge);c.fill(x,y,2,h,kBarEdge);c.fill(x+w-2,y,2,h,kBarEdge);
+}
+void label(Canvas& c,int x,int y,const std::string& s,Face face,SDL_Color col){
+ renegade::game_font::draw(c.px,c.w,c.h,x,y,s,face,2,{col.r,col.g,col.b});
+}
+int width(const std::string& s,Face face){return renegade::game_font::text_width(face,s,2);}
+void centred(Canvas& c,int cx,int y,const std::string& s,Face face,SDL_Color col){label(c,cx-width(s,face)/2,y,s,face,col);}
+}
 bool draw_message_dialog_rgba(std::vector<std::byte>& rgba,unsigned ww,unsigned wh) {
+ using namespace themed;
  if(text_entry.active) {
   rgba.assign(std::size_t(ww)*wh*4,std::byte{0});
   Canvas canvas{ww,wh,rgba};
-  draw_text_entry(int(ww),int(wh),0,2,
-   [&](int x,int y,int w,int h,SDL_Color c){canvas.fill(x,y,w,h,c);},
-   [&](int x,int y,const std::string& s,SDL_Color c,int scale){canvas.text(x,y,s,c,scale);});
+  if(!renegade::game_font::loaded()) {
+   draw_text_entry(int(ww),int(wh),0,2,
+    [&](int x,int y,int w,int h,SDL_Color c){canvas.fill(x,y,w,h,c);},
+    [&](int x,int y,const std::string& s,SDL_Color c,int scale){canvas.text(x,y,s,c,scale);});
+   return true;
+  }
+  // Like the New Profile page: title, a button bar holding the typed name, a prompt line.
+  // The game blanks its own display while the name box is up (PSP OSK utility),
+  // so the page is painted whole in the front end's dark red.
+  canvas.fill(0,0,int(ww),int(wh),SDL_Color{44,10,12,255});
+  const int cx=int(ww)/2,panel_w=560,panel_h=190,px=cx-panel_w/2,py=int(wh)/2-panel_h/2;
+  canvas.fill(px,py,panel_w,panel_h,kPage);canvas.fill(px,py,panel_w,2,kBarEdge);canvas.fill(px,py+panel_h-2,panel_w,2,kBarEdge);
+  centred(canvas,cx,py+18,text_entry.title.empty()?std::string("Enter Name"):text_entry.title,Face::Large,kText);
+  const int bar_w=360,bar_h=42,bx=cx-bar_w/2,by=py+72;
+  bar(canvas,bx,by,bar_w,bar_h,true);
+  const std::string shown=text_entry.text+((SDL_GetTicks()/400)%2?"_":"");
+  label(canvas,bx+16,by+(bar_h-renegade::game_font::height(Face::Small,2))/2,shown,Face::Small,kText);
+  centred(canvas,cx,py+panel_h-50,"Type a name, then press Enter or A to confirm",Face::Small,kDim);
+  centred(canvas,cx,py+panel_h-28,"Esc or B to cancel",Face::Small,kDim);
   return true;
  }
  if(!message_view.visible)return false;
  rgba.assign(std::size_t(ww)*wh*4,std::byte{0});
  Canvas canvas{ww,wh,rgba};
+ if(renegade::game_font::loaded()) {
+  // Like the Load Successful page: message lines centred, Yes/No or Continue bars.
+  std::vector<std::string> lines;
+  { std::string line; const unsigned max_w=unsigned(ww)-160;
+    std::string word; std::string in=message_view.text+" ";
+    for(char ch:in){ if(ch=='\r')continue; if(ch==' '||ch=='\n'){ const std::string trial=line.empty()?word:line+" "+word;
+      if(width(trial,Face::Small)>int(max_w)&&!line.empty()){lines.push_back(line);line=word;} else line=trial; word.clear(); if(ch=='\n'){lines.push_back(line);line.clear();} } else word.push_back(ch);}
+    if(!line.empty())lines.push_back(line); }
+  const int lh=renegade::game_font::height(Face::Small,2)+4;
+  const int buttons=message_view.yes_no?2:(message_view.ok||message_view.cancel?1:0);
+  const int panel_h=60+int(lines.size())*lh+(buttons?70:30),cx=int(ww)/2,py=int(wh)/2-panel_h/2;
+  canvas.fill(0,py,int(ww),panel_h,kPage);canvas.fill(0,py,int(ww),2,kBarEdge);canvas.fill(0,py+panel_h-2,int(ww),2,kBarEdge);
+  int y=py+28;
+  for(const std::string& l:lines){centred(canvas,cx,y,l,Face::Small,kText);y+=lh;}
+  y+=16;
+  if(message_view.yes_no){
+   const int bw=200,bh=42,gap=40;
+   bar(canvas,cx-gap/2-bw,y,bw,bh,message_view.selected_yes);centred(canvas,cx-gap/2-bw/2,y+(bh-renegade::game_font::height(Face::Small,2))/2,"Yes",Face::Small,kText);
+   bar(canvas,cx+gap/2,y,bw,bh,!message_view.selected_yes);centred(canvas,cx+gap/2+bw/2,y+(bh-renegade::game_font::height(Face::Small,2))/2,"No",Face::Small,kText);
+  } else if(buttons){
+   const int bw=240,bh=42;bar(canvas,cx-bw/2,y,bw,bh,true);
+   centred(canvas,cx,y+(bh-renegade::game_font::height(Face::Small,2))/2,message_view.ok?"Continue":"Back",Face::Small,kText);
+  }
+  std::string hint=message_view.accept_cross?"A / Enter select":"B / Enter select";
+  if(message_view.cancel)hint+=message_view.accept_cross?"     B / Backspace back":"     A / Backspace back";
+  label(canvas,int(ww)-width(hint,Face::Small)-24,py+panel_h-renegade::game_font::height(Face::Small,2)-10,hint,Face::Small,kDim);
+  return true;
+ }
  const int scale=2;
  const int margin=12*scale,panel_width=std::min(int(ww)-24,900),line_height=10*scale;
  const unsigned columns=unsigned(std::max(1,(panel_width-2*margin)/(6*scale)));
@@ -296,6 +408,9 @@ void poll(){if(!window)return;bool dirty=false;SDL_Event e;while(SDL_PollEvent(&
   if(menu_open){const int row=ui::selected_row(e.button.x,e.button.y);if(row>=0)apply_choice(row);else{menu_open=false;clear_input();}dirty=true;continue;}
  }
  if(e.type==SDL_MOUSEMOTION && e.motion.windowID==SDL_GetWindowID(window) && menu_open){const int row=ui::selected_row(e.motion.x,e.motion.y);if(row>=0){hover=row;dirty=true;}}
+ if(e.type==SDL_MOUSEMOTION && e.motion.windowID==SDL_GetWindowID(window) && focused && !menu_open){mouse_dx+=e.motion.xrel;mouse_dy+=e.motion.yrel;if(e.motion.xrel||e.motion.yrel)mouse_moved=true;}
+ if((e.type==SDL_MOUSEBUTTONDOWN||e.type==SDL_MOUSEBUTTONUP) && e.button.windowID==SDL_GetWindowID(window) && e.button.button>=1 && e.button.button<=5 && !menu_open)mouse_buttons[e.button.button]=e.type==SDL_MOUSEBUTTONDOWN;
+ if(e.type==SDL_MOUSEWHEEL && focused){if(e.wheel.y>0)wheel_up+=e.wheel.y;else if(e.wheel.y<0)wheel_down-=e.wheel.y;}
  if((e.type==SDL_KEYDOWN || e.type==SDL_KEYUP) && e.key.windowID==SDL_GetWindowID(window)) {
   const bool down=e.type==SDL_KEYDOWN;const auto sc=e.key.keysym.scancode;
   if(!focused)continue;
@@ -322,7 +437,8 @@ void poll(){if(!window)return;bool dirty=false;SDL_Event e;while(SDL_PollEvent(&
    dirty=true;continue;
   }
   if(sc>=0 && sc<SDL_NUM_SCANCODES)keys[sc]=down;
-  if(sc==SDL_SCANCODE_ESCAPE && down)closed=true;
+  // Escape is the pause button in play (RENEGADE_KEY_Pause); Alt+F4 or the
+  // main menu's Quit Game end the session.
  }
  if(e.type==SDL_CONTROLLERDEVICEADDED && !pad && SDL_IsGameController(e.cdevice.which))pad=SDL_GameControllerOpen(e.cdevice.which);
  if(e.type==SDL_CONTROLLERDEVICEREMOVED && pad && SDL_JoystickInstanceID(SDL_GameControllerGetJoystick(pad))==e.cdevice.which){SDL_GameControllerClose(pad);pad=nullptr;for(int i=0;i<SDL_NumJoysticks();++i)if(SDL_IsGameController(i)){pad=SDL_GameControllerOpen(i);if(pad)break;}}
@@ -330,10 +446,15 @@ void poll(){if(!window)return;bool dirty=false;SDL_Event e;while(SDL_PollEvent(&
  if(dirty)render();
 }
 HostInputState sample(){poll();HostInputState s;if(!window||!focused||menu_open||closed||text_entry.active)return s;
+ load_bindings();
+ // PSP buttons for the menus and the original layout: arrows and Enter/Space
+ // for Cross, Backspace/X for Circle, plus the bound pause key for Start.
  const std::pair<SDL_Scancode,unsigned> mapping[]={
- {SDL_SCANCODE_BACKSPACE,1},{SDL_SCANCODE_RETURN,8},{SDL_SCANCODE_UP,0x10},{SDL_SCANCODE_RIGHT,0x20},{SDL_SCANCODE_DOWN,0x40},{SDL_SCANCODE_LEFT,0x80},
- {SDL_SCANCODE_LSHIFT,0x100},{SDL_SCANCODE_RCTRL,0x200},{SDL_SCANCODE_Q,0x100},{SDL_SCANCODE_R,0x200},{SDL_SCANCODE_E,0x1000},{SDL_SCANCODE_C,0x2000},{SDL_SCANCODE_SPACE,0x4000},{SDL_SCANCODE_Z,0x4000},{SDL_SCANCODE_X,0x2000},{SDL_SCANCODE_F,0x8000}};
+ {SDL_SCANCODE_TAB,1},{SDL_SCANCODE_RETURN,0x4000},{SDL_SCANCODE_KP_ENTER,0x4000},{SDL_SCANCODE_UP,0x10},{SDL_SCANCODE_RIGHT,0x20},{SDL_SCANCODE_DOWN,0x40},{SDL_SCANCODE_LEFT,0x80},
+ {SDL_SCANCODE_Q,0x100},{SDL_SCANCODE_R,0x200},{SDL_SCANCODE_E,0x1000},{SDL_SCANCODE_C,0x2000},{SDL_SCANCODE_SPACE,0x4000},{SDL_SCANCODE_Z,0x4000},{SDL_SCANCODE_X,0x2000},{SDL_SCANCODE_BACKSPACE,0x2000},{SDL_SCANCODE_F,0x8000}};
  for(auto [k,b]:mapping)if(keys[k])s.buttons|=b;
+ if(binding_held(bindings[17]))s.buttons|=8; // Start
+ if(mouse_buttons[1])s.buttons|=0x4000; // click = Cross in menus
  s.analog_x=keys[SDL_SCANCODE_A]==keys[SDL_SCANCODE_D]?128:keys[SDL_SCANCODE_A]?0:255;
  s.analog_y=keys[SDL_SCANCODE_W]==keys[SDL_SCANCODE_S]?128:keys[SDL_SCANCODE_W]?0:255;
  if(pad){const std::pair<SDL_GameControllerButton,unsigned> buttons[]={{SDL_CONTROLLER_BUTTON_BACK,1},{SDL_CONTROLLER_BUTTON_START,8},{SDL_CONTROLLER_BUTTON_DPAD_UP,0x10},{SDL_CONTROLLER_BUTTON_DPAD_RIGHT,0x20},{SDL_CONTROLLER_BUTTON_DPAD_DOWN,0x40},{SDL_CONTROLLER_BUTTON_DPAD_LEFT,0x80},{SDL_CONTROLLER_BUTTON_LEFTSHOULDER,0x100},{SDL_CONTROLLER_BUTTON_RIGHTSHOULDER,0x200},{SDL_CONTROLLER_BUTTON_Y,0x1000},{SDL_CONTROLLER_BUTTON_B,0x2000},{SDL_CONTROLLER_BUTTON_A,0x4000},{SDL_CONTROLLER_BUTTON_X,0x8000}};for(auto [b,v]:buttons)if(SDL_GameControllerGetButton(pad,b))s.buttons|=v;
@@ -414,10 +535,20 @@ bool display_window_dialog_overlay(std::vector<std::byte>& rgba,unsigned& width,
 void display_window_start(){if(!display_window_enabled() || window)return;
  inspect_textures=on("RENEGADE_TEXTURE_INSPECT");ge_set_texture_inspection(inspect_textures);
  choice=1; if(auto v=std::getenv("PSPRECOMP_WINDOW_SCALE")){if(std::strlen(v)!=1||*v<'1'||*v>'4')throw psprecomp::Error("PSPRECOMP_WINDOW_SCALE must be 1, 2, 3, or 4");choice=*v-'1';}
- if(auto v=std::getenv("RENEGADE_OUTPUT_RESOLUTION")){choice=ui::parse_resolution(v);if(choice<0)throw psprecomp::Error("Unsupported RENEGADE_OUTPUT_RESOLUTION; use 480x272, 960x544, 1440x816, 1920x1088, 1280x720, or 1920x1080");}
+ if(auto v=std::getenv("RENEGADE_OUTPUT_RESOLUTION")){
+  choice=ui::parse_resolution(v);
+  if(choice<0){int w=0,h=0;char tail=0;
+   if(std::strcmp(v,"desktop")==0){requested_width=requested_height=0;}
+   else if(std::sscanf(v,"%dx%d%c",&w,&h,&tail)==2&&w>=480&&h>=272&&w<=7680&&h<=4320){requested_width=w;requested_height=h;}
+   else throw psprecomp::Error("Unsupported RENEGADE_OUTPUT_RESOLUTION; use WIDTHxHEIGHT (480x272 up to 7680x4320) or desktop");
+   choice=4;}
+  else{requested_width=ui::resolutions[choice].width;requested_height=ui::resolutions[choice].height;}
+ }
+ requested_fullscreen=on("RENEGADE_FULLSCREEN");
  checked(SDL_InitSubSystem(SDL_INIT_VIDEO|SDL_INIT_GAMECONTROLLER),"SDL video");
  try {
-  const auto& res=ui::resolutions[choice];
+  auto res=ui::resolutions[choice];
+  if(requested_width>0){res.width=requested_width;res.height=requested_height;}
   const char* direct_setting=std::getenv("RENEGADE_DIRECT_PRESENT");
   direct_present=ge_gpu_backend_active() && !(direct_setting && std::strcmp(direct_setting,"0")==0);
   const int toolbar=direct_present?0:ui::toolbar_height;
@@ -433,6 +564,7 @@ void display_window_start(){if(!display_window_enabled() || window)return;
    focused=(SDL_GetWindowFlags(window)&SDL_WINDOW_INPUT_FOCUS)!=0;closed=false;menu_open=false;hover=choice;clear_input();
    for(int i=0;i<SDL_NumJoysticks();++i)if(SDL_IsGameController(i)){pad=SDL_GameControllerOpen(i);if(pad)break;}
    std::cerr<<"[display-sdl] direct GPU presentation "<<res.width<<"x"<<res.height<<"; SDL renderer disabled\n";
+   if(requested_fullscreen||(requested_width==0&&std::getenv("RENEGADE_OUTPUT_RESOLUTION")))apply_video_mode(requested_width,requested_height,requested_fullscreen);
    return;
   }
   renderer=SDL_CreateRenderer(window,-1,SDL_RENDERER_ACCELERATED);
@@ -476,7 +608,26 @@ void display_window_present_gpu_rgba(std::span<const std::byte> rgba,std::uint32
 std::uint32_t display_window_buttons(){return sample().buttons;}
 void display_window_analog(std::uint8_t& x,std::uint8_t& y){auto s=sample();x=s.analog_x;y=s.analog_y;}
 HostInputState display_window_input(){return sample();}
-bool display_window_close_requested(){poll();return closed;}
+void display_window_inject_text(const std::string& typed){
+ // Diagnostics: feed the text-entry box as if typed ({enter} confirms, {esc} cancels, {bs} deletes).
+ if(!text_entry.active||text_entry.done)return;
+ for(std::size_t i=0;i<typed.size();++i){
+  if(typed.compare(i,7,"{enter}")==0){text_entry.done=true;i+=6;continue;}
+  if(typed.compare(i,5,"{esc}")==0){text_entry.done=true;text_entry.cancelled=true;i+=4;continue;}
+  if(typed.compare(i,4,"{bs}")==0){if(!text_entry.text.empty())text_entry.text.pop_back();i+=3;continue;}
+  const unsigned char ch=static_cast<unsigned char>(typed[i]);
+  if(ch>=32&&ch<127&&text_entry.text.size()<text_entry.limit)text_entry.text.push_back(char(ch));
+ }
+}
+void display_window_set_fonts(const std::filesystem::path& fonts_asr){
+ if(!renegade::game_font::load(fonts_asr))std::cerr<<"[display-sdl] game fonts unavailable; overlays use the built-in lettering\n";
+}
+bool display_window_close_requested(){poll();
+ // Hide and capture the cursor while the keyboard/mouse drives play.
+ set_relative_mouse(window&&focused&&!menu_open&&!text_entry.active&&!message_view.visible&&renegade::input008::keyboard_mouse_active());
+ return closed;}
+void display_window_request_close(){closed=true;}
+void display_window_apply_video(int width,int height,bool fullscreen){apply_video_mode(width,height,fullscreen);}
 void display_window_shutdown(){if(direct_present){ge_gpu_backend_set_native_window(nullptr);direct_present=false;}if(pad)SDL_GameControllerClose(pad);pad=nullptr;if(texture)SDL_DestroyTexture(texture);texture=nullptr;if(renderer)SDL_DestroyRenderer(renderer);renderer=nullptr;if(window)SDL_DestroyWindow(window);window=nullptr;tw=th=0;closed=focused=menu_open=false;capture_request.clear();clear_input();SDL_QuitSubSystem(SDL_INIT_GAMECONTROLLER|SDL_INIT_VIDEO);}
 DisplayWindowSurface display_window_surface(){DisplayWindowSurface s;int w=0,h=0;if(window)SDL_GetWindowSize(window,&w,&h);s.width=w;s.height=h;return s;}
 // Regression entry used by a separate executable. Exercises this production
@@ -564,6 +715,21 @@ bool run_renegade_display_tests(std::string& error) {
 } // namespace vcs
 
 namespace renegade::input008 {
+RawPad live_keyboard_mouse() {
+ using namespace vcs;
+ poll();load_bindings();RawPad r;
+ r.connected=true;
+ r.enabled=window&&focused&&!menu_open&&!closed&&!message_view.visible&&!text_entry.active;
+ if(!r.enabled){mouse_dx=mouse_dy=0;wheel_up=wheel_down=0;mouse_moved=false;return r;}
+ r.lx=keys[SDL_SCANCODE_A]==keys[SDL_SCANCODE_D]?0:keys[SDL_SCANCODE_A]?-32767:32767;
+ r.ly=keys[SDL_SCANCODE_W]==keys[SDL_SCANCODE_S]?0:keys[SDL_SCANCODE_W]?-32767:32767;
+ for(unsigned i=0;i<15;++i)if(binding_held(bindings[i]))r.buttons|=1u<<i;
+ r.lt=binding_held(bindings[15])?32767:0; r.rt=binding_held(bindings[16])?32767:0;
+ r.mouse_look=true; r.mouse_dx=float(mouse_dx); r.mouse_dy=float(mouse_dy);
+ r.activity=mouse_moved||r.lx||r.ly||r.buttons||r.lt||r.rt||mouse_buttons[1]||mouse_buttons[2]||wheel_up||wheel_down;
+ mouse_dx=mouse_dy=0;mouse_moved=false; wheel_up=wheel_down=0; // wheel steps count for one sample
+ return r;
+}
 RawPad live_gamepad() {
  vcs::poll();RawPad r;
  if(!vcs::pad || !SDL_GameControllerGetAttached(vcs::pad))return r;

@@ -32,6 +32,7 @@ Playable, with known issues.
 Known issues:
 
 - Frame-to-frame timing is slightly uneven around 60 fps.
+- The PC message and text-entry overlays are drawn by the host in the game's menu fonts; they approximate the front end's look rather than being real menu pages.
 
 ## Requirements
 
@@ -81,6 +82,15 @@ Play-RenegadeSquadronPC.cmd
 ```
 
 The launcher checks the game files, sets up controller handling and starts the game in PC mode.
+
+The build also produces `work\build-perf\bin\RenegadeSquadron.exe` (build target `RenegadeSquadron`), the
+same game without a console window. Started with no arguments, it uses an installed layout: the runtime
+DLLs and `RenegadeSquadron.ini` beside it, the extracted disc in `data\` (`data\PSP_GAME\...`), optional
+replacement textures in `mods\textures\`, menu/text overrides in `mods\files\`, and saves in `SAVEDATA\`.
+The settings file holds the PC-mode options (window size, fullscreen, frame rate cap, lighting, shadows,
+bloom, fog, textures, volume, controller); the same options are in the game's Options menu (Video Options,
+Controls > Gamepad & Mouse) and the main menu has Quit Game. Keyboard and mouse play works alongside the
+controller (WASD, mouse look, Esc pauses; keys in the settings file's [Keyboard] section).
 Options are documented in [PC-MODE.md](PC-MODE.md), for example:
 
 ```

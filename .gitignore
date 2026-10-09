@@ -32,6 +32,10 @@ work/*
 
 !work/project/
 !work/project/**
+# Menu/text tools for the PC settings pages (the generated modsiles stay private: game data).
+!work/tools/
+!work/tools/pcmods/
+!work/tools/pcmods/*.py
 
 
 # Explicitly keep copyrighted/large local-only material out of Git.

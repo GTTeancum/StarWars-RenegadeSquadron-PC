@@ -207,8 +207,13 @@ std::size_t AudioStreamDecoder::read(std::span<std::uint8_t> output) {
 
 namespace {
 
-// Every 0xBD PES payload, minus its four-byte PSP substream header.
-std::vector<std::uint8_t> extract_pmf_private_stream(const std::filesystem::path &path) {
+// The 0xBD PES payloads of one PSP substream, minus their four-byte substream
+// header. The file is walked pack by pack (MPEG-PS pack headers and PES length
+// fields), so start-code-like bytes inside video payloads are never taken for
+// audio packets; a byte scan picked up stray "substreams" in CREDITS.PMF and
+// CUSTOMISE.PMF. Only the 2048-byte PSMF header is scanned past byte by byte.
+std::vector<std::uint8_t> extract_pmf_private_stream(const std::filesystem::path &path,
+                                                     std::uint32_t substream) {
     std::vector<std::uint8_t> file;
     {
         std::FILE *handle = std::fopen(path.string().c_str(), "rb");
@@ -223,50 +228,50 @@ std::vector<std::uint8_t> extract_pmf_private_stream(const std::filesystem::path
         std::fclose(handle);
     }
     std::vector<std::uint8_t> elementary;
-    for (std::size_t i = 0u; i + 9u < file.size();) {
-        if (!(file[i] == 0x00u && file[i + 1u] == 0x00u && file[i + 2u] == 0x01u &&
-              file[i + 3u] == 0xBDu)) {
+    constexpr std::size_t kSubstreamHeader = 4u;
+    for (std::size_t i = 0u; i + 6u <= file.size();) {
+        if (!(file[i] == 0x00u && file[i + 1u] == 0x00u && file[i + 2u] == 0x01u)) {
             ++i;
             continue;
         }
-        const std::size_t packet_length =
-            static_cast<std::size_t>(file[i + 4u]) * 256u + file[i + 5u];
-        const std::size_t header_data_length = file[i + 8u];
-        const std::size_t payload = i + 9u + header_data_length;
+        const std::uint8_t id = file[i + 3u];
+        if (id == 0xBAu) { // pack header: 14 bytes plus stuffing
+            if (i + 14u > file.size()) break;
+            i += 14u + (file[i + 13u] & 7u);
+            continue;
+        }
+        if (id < 0xBBu) { ++i; continue; } // not a packet with a length field
         // The length counts everything after the length field itself.
-        if (packet_length < 3u + header_data_length) { ++i; continue; }
-        const std::size_t payload_size = packet_length - 3u - header_data_length;
-        constexpr std::size_t kSubstreamHeader = 4u;
-        if (payload + payload_size > file.size() || payload_size <= kSubstreamHeader) {
-            ++i;
-            continue;
+        const std::size_t end = i + 6u + static_cast<std::size_t>(file[i + 4u]) * 256u + file[i + 5u];
+        if (end > file.size()) break;
+        if (id == 0xBDu && i + 9u <= end) {
+            const std::size_t payload = i + 9u + file[i + 8u];
+            if (payload + kSubstreamHeader < end && file[payload] == substream)
+                elementary.insert(elementary.end(),
+                                  file.begin() + static_cast<std::ptrdiff_t>(payload + kSubstreamHeader),
+                                  file.begin() + static_cast<std::ptrdiff_t>(end));
         }
-        elementary.insert(elementary.end(), file.begin() + static_cast<std::ptrdiff_t>(payload + kSubstreamHeader),
-                          file.begin() + static_cast<std::ptrdiff_t>(payload + payload_size));
-        i = payload + payload_size;
+        i = end;
     }
     return elementary;
 }
 
-// ATRAC3+ frames start with a 0x0FD0 sync. The frame size is not in the PMF in
-// any form this code trusts, so it is measured: the distance between the first
-// two syncs is the frame size, and the decoder is configured with it.
+// ATRAC3+ frames start with a 0x0FD0 sync followed by the PSP frame header,
+// whose low ten bits of bytes 2-3 give the payload size in 8-byte units minus
+// one: 0x285C -> 92 * 8 + 8 = 744 payload bytes, a 752-byte frame with the
+// header. (Measuring the distance between the first two syncs instead was
+// fooled by 0x0FD0 occurring inside frame data.)
 // Bytes of PSP frame header before the ATRAC3+ payload in a PMF.
 constexpr std::size_t kPmfFrameHeader = 8u;
 
-std::size_t measure_atrac3p_frame_size(std::span<const std::uint8_t> stream) {
-    const auto sync_at = [&](std::size_t index) {
-        return index + 1u < stream.size() && stream[index] == 0x0Fu && stream[index + 1u] == 0xD0u;
-    };
-    std::size_t first = stream.size();
-    for (std::size_t i = 0u; i + 1u < stream.size(); ++i) {
-        if (sync_at(i)) { first = i; break; }
-    }
-    if (first == stream.size()) return 0u;
-    for (std::size_t i = first + 2u; i + 1u < stream.size(); ++i) {
-        if (sync_at(i)) return i - first;
-    }
-    return 0u;
+bool atrac3p_sync_at(std::span<const std::uint8_t> stream, std::size_t index) {
+    return index + kPmfFrameHeader <= stream.size() && stream[index] == 0x0Fu && stream[index + 1u] == 0xD0u;
+}
+
+std::size_t atrac3p_frame_size(std::span<const std::uint8_t> stream, std::size_t sync) {
+    if (!atrac3p_sync_at(stream, sync)) return 0u;
+    const std::size_t units = (static_cast<std::size_t>(stream[sync + 2u] & 3u) << 8u) | stream[sync + 3u];
+    return units * 8u + 8u + kPmfFrameHeader;
 }
 
 } // namespace
@@ -308,21 +313,22 @@ PmfAudioDecoder &PmfAudioDecoder::operator=(PmfAudioDecoder &&) noexcept = defau
 bool PmfAudioDecoder::is_open() const noexcept { return state_->codec != nullptr; }
 void PmfAudioDecoder::close() noexcept { state_->release(); }
 
-bool PmfAudioDecoder::open(const std::filesystem::path &path) {
+bool PmfAudioDecoder::open(const std::filesystem::path &path, std::uint32_t substream) {
     close();
     State &state = *state_;
-    state.stream = extract_pmf_private_stream(path);
+    state.stream = extract_pmf_private_stream(path, substream);
     const bool diag = std::getenv("PSPRECOMP_MPEG_DIAG") != nullptr;
     state.diag = diag;
-    if (diag) std::fprintf(stderr, "[pmf-audio] elementary=%zu bytes\n", state.stream.size());
+    if (diag) std::fprintf(stderr, "[pmf-audio] substream=%u elementary=%zu bytes\n", substream, state.stream.size());
     if (state.stream.empty()) return false;
-    state.frame_size = measure_atrac3p_frame_size(state.stream);
-    if (diag) std::fprintf(stderr, "[pmf-audio] frame_size=%zu\n", state.frame_size);
-    if (state.frame_size == 0u) return false;
     // Skip whatever precedes the first sync.
-    for (std::size_t i = 0u; i + 1u < state.stream.size(); ++i) {
-        if (state.stream[i] == 0x0Fu && state.stream[i + 1u] == 0xD0u) { state.cursor = i; break; }
+    state.cursor = state.stream.size();
+    for (std::size_t i = 0u; i < state.stream.size(); ++i) {
+        if (atrac3p_sync_at(state.stream, i)) { state.cursor = i; break; }
     }
+    state.frame_size = atrac3p_frame_size(state.stream, state.cursor);
+    if (diag) std::fprintf(stderr, "[pmf-audio] frame_size=%zu\n", state.frame_size);
+    if (state.frame_size <= kPmfFrameHeader) return false;
 
     const AVCodec *decoder = avcodec_find_decoder(AV_CODEC_ID_ATRAC3P);
     if (decoder == nullptr) return false;
@@ -355,7 +361,15 @@ bool PmfAudioDecoder::open(const std::filesystem::path &path) {
     // audio between them.
     state.pcm.reserve(static_cast<std::size_t>(state.stream.size() / state.frame_size) *
                       2048u * 2u * sizeof(std::int16_t));
+    std::size_t resyncs = 0u;
     while (state.cursor + state.frame_size <= state.stream.size()) {
+        if (!atrac3p_sync_at(state.stream, state.cursor)) {
+            // Out of step: find the next frame rather than decode the rest as noise.
+            ++resyncs;
+            while (state.cursor < state.stream.size() && !atrac3p_sync_at(state.stream, state.cursor))
+                ++state.cursor;
+            continue;
+        }
         const std::size_t payload = state.cursor + kPmfFrameHeader;
         const std::size_t payload_size = state.frame_size - kPmfFrameHeader;
         state.cursor += state.frame_size;
@@ -384,7 +398,7 @@ bool PmfAudioDecoder::open(const std::filesystem::path &path) {
         }
         av_frame_unref(state.frame);
     }
-    if (diag) std::fprintf(stderr, "[pmf-audio] pcm=%zu bytes\n", state.pcm.size());
+    if (diag) std::fprintf(stderr, "[pmf-audio] pcm=%zu bytes resyncs=%zu\n", state.pcm.size(), resyncs);
     state.pcm_read = 0u;
     return !state.pcm.empty();
 }

@@ -36,6 +36,13 @@
 #endif
 
 namespace vcs {
+namespace {
+bool g_smooth_fog = [] {
+    const char *text = std::getenv("RENEGADE_FOG_CURVE");
+    return text != nullptr && std::strcmp(text, "smooth") == 0;
+}();
+bool smooth_fog_enabled() noexcept { return g_smooth_fog; }
+}  // namespace
 
 #if defined(_WIN32)
 namespace {
@@ -127,8 +134,10 @@ struct Dx12PixelConstants {
     std::uint32_t lighting_slot{};
     // bit0: the bound texture has a normal map in t3.
     std::uint32_t material_flags{};
+    // GeGpuDrawDescriptor::palette_control for GPU-palette textures, else 0.
+    std::uint32_t palette_control{};
 };
-static_assert(sizeof(Dx12PixelConstants) == 7u * sizeof(std::uint32_t));
+static_assert(sizeof(Dx12PixelConstants) == 8u * sizeof(std::uint32_t));
 
 // Per-frame lighting blocks (GeGpuLighting, 512 bytes each) live in their own
 // mapped upload buffer per frame slot and are read by the pixel shader as a
@@ -263,6 +272,9 @@ struct Dx12GeState {
     std::vector<std::uint32_t> indices;
     std::vector<Dx12Batch> batches;
     std::vector<GeGpuLighting> lighting_blocks;
+    // Most recent palette stored by ge_gpu_backend_intern_palette (1-based block).
+    std::uint32_t last_palette_slot{};
+    std::size_t last_palette_entries{};
     std::vector<CloudCameraCandidate> cloud_cameras;
     std::vector<std::byte> frame_rgba;
     std::vector<std::byte> last_texture_rgba;
@@ -413,12 +425,17 @@ std::uint64_t texture_key(const GeGpuDrawDescriptor &draw) noexcept {
             ? draw.texture_level_heights[level] : draw.texture_height);
     }
     key = hash_mix(key, draw.texture_format);
-    key = hash_mix(key, draw.clut_address);
-    key = hash_mix(key, draw.clut_format);
-    key = hash_mix(key, draw.clut_shift);
-    key = hash_mix(key, draw.clut_mask);
-    key = hash_mix(key, draw.clut_start);
-    key = hash_mix(key, draw.clut_checksum);
+    if (draw.texture_palette_mode) {
+        // Raw CLUT indices: the palette is per-draw shader state, not texture identity.
+        key = hash_mix(key, 0x9A1E77E5u);
+    } else {
+        key = hash_mix(key, draw.clut_address);
+        key = hash_mix(key, draw.clut_format);
+        key = hash_mix(key, draw.clut_shift);
+        key = hash_mix(key, draw.clut_mask);
+        key = hash_mix(key, draw.clut_start);
+        key = hash_mix(key, draw.clut_checksum);
+    }
     key = hash_mix(key, static_cast<std::uint64_t>(draw.texture_swizzled));
     key = hash_mix(key, static_cast<std::uint64_t>(draw.texture_min_linear));
     key = hash_mix(key, static_cast<std::uint64_t>(draw.texture_mag_linear));
@@ -550,6 +567,7 @@ Dx12PixelConstants make_pixel_constants(const GeGpuDrawDescriptor &draw,
     out.fog_control = (draw.fog_color & 0x00FFFFFFu) |
         (static_cast<std::uint32_t>(draw.fog_enabled ? 0xFFu : 0u) << 24u);
     out.framebuffer_format = draw.framebuffer_format & 3u;
+    out.palette_control = draw.texture_palette_mode ? draw.palette_control : 0u;
     return out;
 }
 
@@ -966,7 +984,7 @@ cbuffer DrawPixelState : register(b1) {
     uint FramebufferFormat;
     uint LightingSlot;
     uint MaterialFlags;
-    float PixelReserved;
+    uint PaletteControl;
     float CloudInvProjectionX;
     float3 CloudUp;
     float CloudInvProjectionY;
@@ -979,6 +997,36 @@ cbuffer DrawPixelState : register(b1) {
 };
 StructuredBuffer<float4> LightingBlocks : register(t1);
 Texture2D<float4> NormalMap : register(t3);
+// GPU palette (PaletteControl != 0): t0 holds raw CLUT indices in red; the
+// palette entries are rows of the frame's lighting buffer. Filtering happens
+// after the lookup, as on the PSP.
+// PSP texture sizes are powers of two, so wrapping is a mask.
+uint FetchPaletteIndex(int2 p, uint w, uint h, uint mip) {
+    uint x = (PaletteControl & 0x20000u) != 0u ? (uint)clamp(p.x, 0, (int)w - 1) : ((uint)p.x & (w - 1u));
+    uint y = (PaletteControl & 0x40000u) != 0u ? (uint)clamp(p.y, 0, (int)h - 1) : ((uint)p.y & (h - 1u));
+    return (uint)round(SourceTexture.Load(int3((int)x, (int)y, (int)mip)).r * 255.0);
+}
+float4 PaletteEntry(uint index) {
+    return LightingBlocks[((PaletteControl & 0xFFFFu) - 1u) * 32u + index];
+}
+float4 SamplePalette(float2 uv) {
+    uint w, h, levels;
+    SourceTexture.GetDimensions(0u, w, h, levels);
+    float lod = SourceTexture.CalculateLevelOfDetail(SourceSampler, uv);
+    uint mip = (uint)clamp(round(lod), 0.0, (float)(levels - 1u));
+    uint mw = max(w >> mip, 1u);
+    uint mh = max(h >> mip, 1u);
+    float2 t = uv * float2(mw, mh);
+    bool linearFilter = (PaletteControl & 0x10000u) != 0u;
+    if (linearFilter) t -= 0.5;
+    int2 b = int2(floor(t));
+    float2 f = linearFilter ? t - floor(t) : float2(0.0, 0.0);
+    float4 c00 = PaletteEntry(FetchPaletteIndex(b, mw, mh, mip));
+    float4 c10 = PaletteEntry(FetchPaletteIndex(b + int2(1, 0), mw, mh, mip));
+    float4 c01 = PaletteEntry(FetchPaletteIndex(b + int2(0, 1), mw, mh, mip));
+    float4 c11 = PaletteEntry(FetchPaletteIndex(b + int2(1, 1), mw, mh, mip));
+    return lerp(lerp(c00, c10, f.x), lerp(c01, c11, f.x), f.y);
+}
 struct VSIn {
     float4 position : POSITION;
     float4 color : COLOR0;
@@ -1362,7 +1410,7 @@ float4 PSMain(VSOut input) : SV_TARGET {
         color = PerPixelLighting(color, input.worldPos, shadingNormal, geometricNormal, input.worldNormal,
                                  (MaterialFlags & 1u) != 0u, LightingSlot - 1u);
     if (textureControl.w != 0u) {
-        float4 texel = SourceTexture.Sample(SourceSampler, uv);
+        float4 texel = PaletteControl != 0u ? SamplePalette(uv) : SourceTexture.Sample(SourceSampler, uv);
         color = ApplyTextureFunction(color, texel, textureControl, textureEnv);
     }
     if (fogControl.w != 0u) {
@@ -1571,8 +1619,8 @@ struct ShadowSettings {
     float strength{0.75f};
 };
 
-const ShadowSettings &shadow_settings() {
-    static const ShadowSettings settings = [] {
+ShadowSettings &mutable_shadow_settings() {
+    static ShadowSettings settings = [] {
         ShadowSettings out{};
         const char *enabled = std::getenv("RENEGADE_SHADOWS");
         out.enabled = enabled != nullptr && *enabled != '\0' && std::strcmp(enabled, "0") != 0;
@@ -1594,6 +1642,7 @@ const ShadowSettings &shadow_settings() {
     }();
     return settings;
 }
+const ShadowSettings &shadow_settings() { return mutable_shadow_settings(); }
 
 bool create_shadow_map(Dx12GeState &s, std::string &error) noexcept {
     const ShadowSettings &settings = shadow_settings();
@@ -2948,8 +2997,8 @@ struct BloomSettings {
     float input_scale{0.5f};
 };
 
-const BloomSettings &bloom_settings() {
-    static const BloomSettings settings = [] {
+BloomSettings &mutable_bloom_settings() {
+    static BloomSettings settings = [] {
         BloomSettings out{};
         const char *enabled = std::getenv("RENEGADE_BLOOM");
         out.enabled = enabled != nullptr && *enabled != '\0' && std::strcmp(enabled, "0") != 0;
@@ -2970,6 +3019,7 @@ const BloomSettings &bloom_settings() {
     }();
     return settings;
 }
+const BloomSettings &bloom_settings() { return mutable_bloom_settings(); }
 
 struct BloomConstants {
     std::array<float, 2> uv_offset{};
@@ -3611,6 +3661,8 @@ void clear_accumulation(Dx12GeState &s) noexcept {
     s.indices.clear();
     s.batches.clear();
     s.lighting_blocks.clear();
+    s.last_palette_slot = 0u;
+    s.last_palette_entries = 0u;
     s.cloud_cameras.clear();
 }
 
@@ -4250,6 +4302,31 @@ bool ge_gpu_backend_attach_normal_map(const GeGpuDrawDescriptor &draw, std::uint
     srv.Texture2D.MipLevels = map->mip_levels;
     s.device->CreateShaderResourceView(base->normal_image.Get(), &srv, srv_cpu(s, base->srv_index + 1u));
     return true;
+}
+
+std::uint32_t ge_gpu_backend_intern_palette(std::span<const std::array<float, 4>> entries) noexcept {
+    Dx12GeState &s = state();
+    if (!s.enabled || s.frames[s.frame_cursor].mapped_lighting == nullptr ||
+        entries.empty() || entries.size() > 256u) return 0u;
+    constexpr std::size_t kRows = sizeof(GeGpuLighting) / sizeof(std::array<float, 4>);
+    static_assert(kRows == 32u);
+    const std::size_t blocks = (entries.size() + kRows - 1u) / kRows;
+    // Consecutive draws of one ship share its palette; compare with the last one stored.
+    if (s.last_palette_slot != 0u && s.last_palette_slot + blocks - 1u <= s.lighting_blocks.size() &&
+        s.last_palette_entries == entries.size() &&
+        std::memcmp(&s.lighting_blocks[s.last_palette_slot - 1u], entries.data(), entries.size_bytes()) == 0)
+        return s.last_palette_slot;
+    if (s.lighting_blocks.size() + blocks > kShadowFrameBlock) return 0u;
+    const std::size_t first = s.lighting_blocks.size();
+    try {
+        s.lighting_blocks.resize(first + blocks);
+    } catch (...) {
+        return 0u;
+    }
+    std::memcpy(&s.lighting_blocks[first], entries.data(), entries.size_bytes());
+    s.last_palette_slot = static_cast<std::uint32_t>(first + 1u);
+    s.last_palette_entries = entries.size();
+    return s.last_palette_slot;
 }
 
 std::uint32_t ge_gpu_backend_intern_lighting(const GeGpuLighting &lighting) noexcept {
@@ -5078,14 +5155,10 @@ bool ge_gpu_backend_finish_color_frame(std::uint64_t vblank) noexcept {
             batch.transform.lighting_slot <= s.lighting_blocks.size())
             pixel_state.lighting_slot = batch.transform.lighting_slot;
         if (batch_has_normal_map && pixel_state.lighting_slot != 0u) pixel_state.material_flags |= 1u;
-        static const bool smooth_fog = [] {
-            const char *text = std::getenv("RENEGADE_FOG_CURVE");
-            return text != nullptr && std::strcmp(text, "smooth") == 0;
-        }();
-        if (smooth_fog) pixel_state.material_flags |= 2u;
+        if (smooth_fog_enabled()) pixel_state.material_flags |= 2u;
         if (!active_pixel_valid ||
             std::memcmp(&pixel_state, &active_pixel, sizeof(pixel_state)) != 0) {
-            s.list->SetGraphicsRoot32BitConstants(3u, 7u, &pixel_state, 0u);
+            s.list->SetGraphicsRoot32BitConstants(3u, 8u, &pixel_state, 0u);
             active_pixel = pixel_state;
             active_pixel_valid = true;
         }
@@ -5365,6 +5438,7 @@ bool ge_gpu_backend_upload_decoded_texture_chain_packed(const GeGpuDrawDescripto
 bool ge_gpu_backend_copy_last_texture_rgba(std::span<std::byte>) noexcept { return false; }
 void ge_gpu_backend_accumulate_color_triangles(const GeGpuDrawDescriptor &, std::span<const GeGpuVertex>) noexcept {}
 std::uint32_t ge_gpu_backend_intern_lighting(const GeGpuLighting &) noexcept { return 0u; }
+std::uint32_t ge_gpu_backend_intern_palette(std::span<const std::array<float, 4>>) noexcept { return 0u; }
 bool ge_gpu_backend_attach_normal_map(const GeGpuDrawDescriptor &, std::uint32_t, std::uint32_t, std::vector<std::byte>) noexcept { return false; }
 void ge_gpu_backend_accumulate_hardware_triangles(const GeGpuDrawDescriptor &, const GeGpuHardwareTransform &, std::span<const GeGpuVertex>, std::span<const std::uint32_t>) noexcept {}
 bool ge_gpu_backend_accumulate_hardware_packed_0115(const GeGpuDrawDescriptor &, const GeGpuHardwareTransform &, std::span<const std::byte>, std::uint32_t, std::span<const std::uint32_t>) noexcept { return false; }
@@ -5390,4 +5464,29 @@ const char *ge_gpu_backend_name(GeGpuBackendKind kind) noexcept {
     return "unknown";
 }
 
+// Video Options (PC.Shadows / PC.Bloom / PC.SmoothFog): the same switches the
+// environment sets at start-up, applied between frames.
+void ge_gpu_backend_set_shadows(bool enabled) noexcept {
+    ShadowSettings &settings = mutable_shadow_settings();
+    settings.enabled = enabled;
+    Dx12GeState &s = state();
+    if (enabled && s.device != nullptr && !s.shadow_ready) {
+        std::string error;
+        if (!create_shadow_map(s, error)) {
+            std::cerr << "[shadows] unavailable: " << error << "\n";
+            s.shadow_map.Reset();
+            s.shadow_ready = false;
+        }
+    }
+    if (!enabled) s.shadow_ready = false;
+}
+void ge_gpu_backend_set_bloom(bool enabled) noexcept {
+    mutable_bloom_settings().enabled = enabled;
+    Dx12GeState &s = state();
+    if (enabled && s.device != nullptr && !s.post_ready) {
+        std::string error;
+        if (!create_post_pipelines(s, error)) std::cerr << "[asura-post] bloom unavailable: " << error << "\n";
+    }
+}
+void ge_gpu_backend_set_smooth_fog(bool enabled) noexcept { g_smooth_fog = enabled; }
 } // namespace vcs

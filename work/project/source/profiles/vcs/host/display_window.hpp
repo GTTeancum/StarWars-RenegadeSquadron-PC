@@ -1,4 +1,5 @@
 #pragma once
+#include <filesystem>
 
 #include "framebuffer_capture.hpp"
 #include "psprecomp/guest_memory.hpp"
@@ -83,6 +84,14 @@ struct HostInputState {
 
 // True once the user closed the window or pressed Escape.
 [[nodiscard]] bool display_window_close_requested();
+// The game's Quit command: ends the session like closing the window.
+void display_window_request_close();
+// The game's menu fonts (GRAPHICS\FONTS.ASR) for the host-drawn overlays.
+void display_window_set_fonts(const std::filesystem::path& fonts_asr);
+// Diagnostics (controller step channel): types into the text-entry box.
+void display_window_inject_text(const std::string& typed);
+// Settings menu: window size (0x0 = desktop size) and fullscreen.
+void display_window_apply_video(int width,int height,bool fullscreen);
 
 void display_window_shutdown();
 

@@ -1353,13 +1353,15 @@ Color apply_prepared_lighting(Color input, Vec3 world_position, Vec3 world_norma
 // positions/normals and the GE lighting state to the GPU, which evaluates the
 // lights per pixel (ge_gpu_backend_dx12.cpp PerPixelLighting) instead of the
 // CPU lighting each vertex.
-bool per_pixel_lighting_enabled() noexcept {
-    static const bool enabled = [] {
-        const char *text = std::getenv("RENEGADE_PER_PIXEL_LIGHTING");
-        return text != nullptr && *text != '\0' && std::strcmp(text, "0") != 0;
-    }();
-    return enabled;
-}
+bool g_per_pixel_lighting = [] {
+    const char *text = std::getenv("RENEGADE_PER_PIXEL_LIGHTING");
+    return text != nullptr && *text != '\0' && std::strcmp(text, "0") != 0;
+}();
+bool g_receive_shadows = [] {
+    const char *text = std::getenv("RENEGADE_SHADOWS");
+    return text != nullptr && *text != '\0' && std::strcmp(text, "0") != 0;
+}();
+bool per_pixel_lighting_enabled() noexcept { return g_per_pixel_lighting; }
 
 // World-space camera position from the GE view matrix (view(p) = R p + t,
 // so p_camera = -R^-1 t).
@@ -1427,10 +1429,7 @@ GeGpuLighting make_gpu_lighting(const PreparedLighting &state, const GeTransform
         return text != nullptr && std::strcmp(text, "normals") == 0;
     }();
     // bit3: receives sun shadows (RENEGADE_SHADOWS; the backend owns the map).
-    static const bool receive_shadows = [] {
-        const char *text = std::getenv("RENEGADE_SHADOWS");
-        return text != nullptr && *text != '\0' && std::strcmp(text, "0") != 0;
-    }();
+    const bool receive_shadows = g_receive_shadows;
     static const bool debug_shadows = [] {
         const char *text = std::getenv("RENEGADE_SHADOWS");
         return text != nullptr && std::strcmp(text, "debug") == 0;
@@ -2742,6 +2741,62 @@ bool decode_texture_rgba_into(const psprecomp::GuestMemory &memory,
         }, useful_participants);
     }
     return true;
+}
+
+// Raw CLUT indices (red channel, alpha 255) of a T4/T8 texture for the GPU
+// palette path; the palette itself is applied in the pixel shader.
+bool decode_texture_indices_into(const TextureSetup &texture, std::span<std::byte> rgba8) {
+    if ((texture.format != 4u && texture.format != 5u) || texture.pixels == nullptr ||
+        texture.width == 0u || texture.height == 0u || texture.width > 4096u || texture.height > 4096u)
+        return false;
+    if (static_cast<std::uint64_t>(texture.width) * texture.height * 4ull != rgba8.size()) return false;
+    const bool t4 = texture.format == 4u;
+    const std::uint32_t row_bytes = t4 ? (texture.buffer_width + 1u) >> 1u : texture.buffer_width;
+    const std::uint32_t blocks_per_row = (row_bytes + 15u) >> 4u;
+    std::byte *dst = rgba8.data();
+    for (std::uint32_t y = 0u; y < texture.height; ++y) {
+        for (std::uint32_t x = 0u; x < texture.width; ++x) {
+            const std::uint32_t byte_x = t4 ? x >> 1u : x;
+            const std::size_t offset = texture.swizzled
+                ? static_cast<std::size_t>((((y >> 3u) * blocks_per_row + (byte_x >> 4u)) << 7u) +
+                                           ((y & 7u) << 4u) + (byte_x & 15u))
+                : static_cast<std::size_t>(y) * row_bytes + byte_x;
+            const std::uint8_t packed = texture.pixels[offset];
+            const std::uint8_t index = t4 ? static_cast<std::uint8_t>((x & 1u) != 0u ? packed >> 4u : packed & 0xFu)
+                                          : packed;
+            dst[0] = static_cast<std::byte>(index);
+            dst[1] = std::byte{0};
+            dst[2] = std::byte{0};
+            dst[3] = std::byte{0xFF};
+            dst += 4;
+        }
+    }
+    return true;
+}
+
+// Palette-animated textures. Asura PC creates every texture once and never
+// rewrites it; Renegade instead recolours some CLUTs every frame (space-battle
+// ships), which minted a new texture -- decode, upload, override lookup -- per
+// palette per frame (about 7 per frame, 6-9 ms). A CLUT texture whose palette
+// keeps changing is switched to the GPU palette path: indices uploaded once,
+// palette sent as per-draw shader state.
+bool palette_animated_texture(const GeGpuDrawDescriptor &draw) {
+    // RENEGADE_GPU_PALETTE=0 keeps every CLUT texture on the CPU-expanded path (A/B checks).
+    static const bool enabled = [] { const char *v = std::getenv("RENEGADE_GPU_PALETTE"); return v == nullptr || std::strcmp(v, "0") != 0; }();
+    if (!enabled) return false;
+    struct Entry { std::uint32_t checksum{}; std::uint32_t changes{}; };
+    static std::unordered_map<std::uint64_t, Entry> seen;
+    constexpr std::uint32_t kChangesBeforeGpuPalette = 4u;
+    const std::uint64_t key = (static_cast<std::uint64_t>(draw.texture_address) << 32u) ^
+        (static_cast<std::uint64_t>(draw.clut_address) * 0x9E3779B97F4A7C15ull) ^
+        (static_cast<std::uint64_t>(draw.texture_width) << 16u) ^ draw.texture_height ^
+        (static_cast<std::uint64_t>(draw.texture_format) << 60u);
+    if (seen.size() > 65536u) seen.clear();
+    Entry &entry = seen[key];
+    if (entry.changes >= kChangesBeforeGpuPalette) return true;
+    if (entry.checksum != 0u && entry.checksum != draw.clut_checksum) ++entry.changes;
+    entry.checksum = draw.clut_checksum;
+    return entry.changes >= kChangesBeforeGpuPalette;
 }
 
 bool decode_texture_rgba(const psprecomp::GuestMemory &memory,
@@ -4717,11 +4772,35 @@ bool render_ge_primitive(psprecomp::GuestMemory &memory,
                 gpu_draw.clut_checksum = checksum;
             }
         }
+        gpu_draw.texture_palette_mode = false;
+        gpu_draw.palette_control = 0u;
+        if (gpu_backend_enabled && gpu_draw.texture_enabled && !gpu_draw.clear_mode &&
+            (gpu_draw.texture_format == 4u || gpu_draw.texture_format == 5u) &&
+            gpu_draw.clut_checksum != 0u && palette_animated_texture(gpu_draw)) {
+            const TextureSetup setup = make_texture_setup_for_level(memory, commands, 0u);
+            if (setup.pixels != nullptr && !setup.hd_pixels) {
+                std::array<std::array<float, 4>, 256> entries{};
+                const std::uint32_t count = gpu_draw.texture_format == 4u ? 16u : 256u;
+                for (std::uint32_t i = 0u; i < count; ++i) {
+                    const Color c = read_clut_fast(memory, setup, i);
+                    entries[i] = {c.r / 255.0f, c.g / 255.0f, c.b / 255.0f, c.a / 255.0f};
+                }
+                const std::uint32_t slot = ge_gpu_backend_intern_palette(
+                    std::span<const std::array<float, 4>>(entries.data(), count));
+                if (slot != 0u && slot <= 0xFFFFu) {
+                    gpu_draw.texture_palette_mode = true;
+                    gpu_draw.palette_control = slot |
+                        (gpu_draw.texture_linear ? 0x10000u : 0u) |
+                        (gpu_draw.texture_clamp_u ? 0x20000u : 0u) |
+                        (gpu_draw.texture_clamp_v ? 0x40000u : 0u);
+                }
+            }
+        }
         // All texture identity fields, including the mutable CLUT checksum, are
         // final now. Hash them once; the backend will reuse these derived keys
         // throughout signature/cache/upload/accumulation for this PRIM.
 #if defined(RENEGADE_MATERIAL_AUDIT009)
-        if(gpu_draw.texture_enabled&&!gpu_draw.clear_mode) {
+        if(gpu_draw.texture_enabled&&!gpu_draw.clear_mode&&!gpu_draw.texture_palette_mode) {
             gpu_override_source=make_texture_setup_for_level(memory,commands,0);
             bind_override_texture(memory,gpu_override_source);
             if(gpu_override_source.replacement) {
@@ -4878,8 +4957,10 @@ bool render_ge_primitive(psprecomp::GuestMemory &memory,
         for (std::uint32_t level = 0u; all && level < level_count; ++level) {
             const std::size_t bytes = static_cast<std::size_t>(mip_setups[level].width) *
                                       mip_setups[level].height * 4u;
-            if (!decode_texture_rgba_into(memory, mip_setups[level],
-                                          std::span<std::byte>(decoded).subspan(offset, bytes))) {
+            const std::span<std::byte> level_rgba = std::span<std::byte>(decoded).subspan(offset, bytes);
+            if (gpu_draw.texture_palette_mode
+                    ? !decode_texture_indices_into(mip_setups[level], level_rgba)
+                    : !decode_texture_rgba_into(memory, mip_setups[level], level_rgba)) {
                 all = false;
                 break;
             }
@@ -6080,4 +6161,7 @@ void reset_ge_phase_totals() noexcept {
     g_ge_vertex_count = 0u;
 }
 
+// Video Options (PC.PerPixelLighting / PC.Shadows), applied between frames.
+void ge_set_per_pixel_lighting(bool enabled) noexcept { g_per_pixel_lighting = enabled; }
+void ge_set_receive_shadows(bool enabled) noexcept { g_receive_shadows = enabled; }
 } // namespace vcs

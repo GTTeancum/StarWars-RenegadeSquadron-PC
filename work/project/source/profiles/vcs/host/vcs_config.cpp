@@ -727,6 +727,9 @@ VcsConfiguration load_vcs_configuration(const std::filesystem::path &path) {
                  section == "simulate hdr") {
             // Parsed by install_project2dfx() or hdr_post_configure().
         }
+        // Renegade Squadron's installed RenegadeSquadron.ini: read by the game's own startup (main.cpp).
+        else if (section == "graphics" || section == "controller" || section == "mouse" || section == "keyboard") {
+        }
         else if (section.empty())
             warning(config, line_number, "key outside a section");
         else

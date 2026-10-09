@@ -60,6 +60,15 @@ struct GeGpuDrawDescriptor {
     bool texture_swizzled{};
     // Host-authored replacement takes priority over live VRAM feedback.
     bool texture_replacement{};
+    // Palette applied on the GPU: the texture is uploaded once as raw CLUT
+    // indices and the draw's palette travels in palette_control (see
+    // ge_gpu_backend_intern_palette). Used for CLUT textures whose palette the
+    // game rewrites every frame (space-battle ship recolouring), following
+    // Asura PC's rule that textures are created once and never re-uploaded.
+    bool texture_palette_mode{};
+    // bits 0-15: 1-based first lighting-buffer block of the palette;
+    // bit 16 linear filtering, bit 17 clamp U, bit 18 clamp V.
+    std::uint32_t palette_control{};
     // Full PSP GE filter/mipmap state. texture_linear remains the legacy alias
     // for magnification filtering so older probes and packages stay source-compatible.
     bool texture_linear{};
@@ -558,6 +567,11 @@ void ge_gpu_backend_accumulate_color_triangles(
 // the CPU as before.
 [[nodiscard]] std::uint32_t ge_gpu_backend_intern_lighting(const GeGpuLighting &lighting) noexcept;
 
+// Stores a CLUT (16 or 256 RGBA entries, 0-1) for this frame in consecutive
+// lighting-buffer blocks and returns the 1-based first block, reusing the
+// previous palette when identical. 0 = unavailable.
+[[nodiscard]] std::uint32_t ge_gpu_backend_intern_palette(std::span<const std::array<float, 4>> entries) noexcept;
+
 // Attaches a tangent-space normal map (RGBA8, RGB = XYZ * 0.5 + 0.5) to the
 // texture `draw` already uploaded. Per-pixel lit draws using that texture then
 // perturb their normal with it. Returns false if the texture is not resident.
@@ -634,6 +648,11 @@ void ge_gpu_backend_set_display_framebuffer(std::uint32_t address) noexcept;
 void ge_gpu_backend_mark_window_presented() noexcept;
 
 [[nodiscard]] GeGpuBackendReport ge_gpu_backend_report();
+// Video Options switches applied between frames (see RENEGADE_SHADOWS,
+// RENEGADE_BLOOM, RENEGADE_FOG_CURVE for the start-up values).
+void ge_gpu_backend_set_shadows(bool enabled) noexcept;
+void ge_gpu_backend_set_bloom(bool enabled) noexcept;
+void ge_gpu_backend_set_smooth_fog(bool enabled) noexcept;
 [[nodiscard]] const char *ge_gpu_backend_name(GeGpuBackendKind kind) noexcept;
 
 } // namespace vcs

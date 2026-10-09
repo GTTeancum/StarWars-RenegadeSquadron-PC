@@ -19,7 +19,9 @@ second with all features on, against about 1.5 before this work.
 | Bloom | Bright-pass, 4-tap blur passes, added before the HUD | Asura PC `FSFX_SM30_Bloom.fx` |
 | Normal maps | `textures/<id>_n.png` (or `.dds`/`.tga`) next to replacement textures | Asura PC `NormalMap.fxh` |
 | System messages | PSP message boxes drawn as a GPU overlay | new |
-| Text entry | Profile names typed on the PC keyboard (Enter confirm, Esc cancel; controller A/B) in place of the PSP on-screen keyboard | new |
+| Text entry and system messages | Profile names typed on the PC keyboard (Enter confirm, Esc cancel; controller A/B) in place of the PSP on-screen keyboard; drawn with the game's own menu fonts and colours (`host/game_font.cpp` reads GRAPHICS\FONTS.ASR) | Asura font chunks + PSP texture pages |
+| In-game PC settings | Options > Video Options (window size, fullscreen, frame rate limit, lighting, shadows, bloom, fog), Controls > Gamepad Settings (look speed, deadzones, invert, layout), Quit Game on the main menu; also in the pause menu. Changes apply at once and are saved to `RenegadeSquadron.ini` | Asura console variables (`PC.*`, registered through the game's `AddVar`/`AddCmd`) bound by the game's own GUIMenu widgets; pages built by `work\tools\pcmods\build_pc_menus.py` into `mods\files` |
+| Keyboard and mouse | WASD move, mouse look, mouse buttons fire/lock, Esc pauses; the game switches to whichever device was touched last; keys set in `RenegadeSquadron.ini` [Keyboard], mouse speed/invert in the Gamepad & Mouse page | Asura PC input (mouse velocity on the look axes, keys mapped to controller actions), host side in `display_sdl.cpp` / `modern_input008.cpp` |
 
 ## Launcher options
 
@@ -67,6 +69,12 @@ Debug views: `RENEGADE_PER_PIXEL_LIGHTING=normals` (surface directions as colour
   affect. Where a normal map exists on such a surface, the baked colour is scaled by the map's change in
   response to the sun (exactly 1 where the map is flat). Asura PC lit these surfaces from per-vertex
   spherical-harmonic data that Renegade lacks.
+- **Palette-animated textures.** Asura PC creates each texture once and never rewrites it. Renegade
+  recolours some palettes every frame (space-battle ships), which re-decoded and re-uploaded those
+  textures every frame (about 15 ms per frame in space). A palette texture whose colours keep changing is
+  switched to a GPU palette: its indices are uploaded once and the palette is sent per draw and applied in
+  the pixel shader. Space battles went from about 40 to about 58 fps at the 60 fps cap. Those textures cast
+  shadows as solid shapes (the shadow pass does not apply the palette's transparency).
 - **Fog curve.** Asura fades fog through a per-level curve texture; with no Renegade data the curve is
   an optional smoothstep. The default keeps the game's own linear fog.
 
@@ -74,3 +82,5 @@ Debug views: `RENEGADE_PER_PIXEL_LIGHTING=normals` (surface directions as colour
 
 - Shadows follow the camera's rotation; slight shimmer when turning is possible.
 - Frame-to-frame timing varies slightly around 16.7 ms.
+- The PC overlays (system message boxes and the keyboard text-entry box) use the game's menu fonts and
+  colours; the layouts are host-drawn approximations of the front end's pages, not GUIMenu pages.

@@ -1,4 +1,5 @@
 #include "modern_input008.hpp"
+#include "pc_settings.hpp"
 #include "guest_savedata_preflight006.hpp"
 #include "diagnostic_control.hpp"
 #include "movie_gpu_present.hpp"
@@ -40,6 +41,7 @@
 #include <filesystem>
 #include <ios>
 #include <iomanip>
+#include <iterator>
 #include <map>
 #include <memory>
 #include <mutex>
@@ -235,6 +237,7 @@ struct MpegContextState {
     VideoStreamDecoder video;
     PmfAudioDecoder audio;
     std::filesystem::path audio_source;
+    std::uint32_t audio_substream{};
     bool video_eof{};
     bool analyzed{};
 };
@@ -528,6 +531,27 @@ std::string normalized_native_path(const std::filesystem::path &path) {
     if (error) normalized = std::filesystem::absolute(path, error);
     if (error) normalized = path.lexically_normal();
     return normalized.generic_string();
+}
+
+// Data-file overrides. A file at <RENEGADE_OVERRIDE_ROOT>\files\<path relative
+// to the disc root> replaces the disc's copy (menus, text, button-atlas table...),
+// reported with its own size. The directory listing registers the override
+// path, so the raw-UMD opens the game makes by sector read it too.
+std::filesystem::path resolve_file_override(const psprecomp::Runtime &rt, const std::filesystem::path &native) {
+    static const std::filesystem::path files_root = [] {
+        const char *root = std::getenv("RENEGADE_OVERRIDE_ROOT");
+        return root && *root ? std::filesystem::path(root) / "files" : std::filesystem::path();
+    }();
+    if (files_root.empty()) return native;
+    std::error_code error;
+    const auto relative = std::filesystem::relative(native, rt.game_root(), error);
+    if (error || relative.empty() || relative.native().starts_with(L"..")) return native;
+    const auto candidate = files_root / relative;
+    if (!std::filesystem::is_regular_file(candidate, error) || error) return native;
+    static std::unordered_set<std::string> reported;
+    if (reported.insert(candidate.string()).second)
+        std::cerr << "[override] file " << relative.generic_string() << " <- " << candidate.string() << "\n";
+    return candidate;
 }
 
 const VirtualDiscFile *register_virtual_disc_file(const std::filesystem::path &path) {
@@ -878,6 +902,57 @@ std::filesystem::path identify_atrac_source(std::span<const std::uint8_t> header
         input.read(reinterpret_cast<char *>(candidate.data()), static_cast<std::streamsize>(candidate.size()));
         if (input.gcount() == static_cast<std::streamsize>(candidate.size()) &&
             std::equal(candidate.begin(), candidate.end(), header.begin())) return file.native_path;
+    }
+    // Not a file of its own: most speech -- the campaign's radio and mission voice
+    // lines -- is a RIFF/WAVE ATRAC3+ clip packed inside a sound archive (.AM;
+    // SOUNDS\GMSND.AM holds 1070 of them), which the game streams from the
+    // archive itself. Those clips used to play as silence. The archives are
+    // indexed once, and a match is handed to FFmpeg as a slice of the archive
+    // through its subfile protocol.
+    struct EmbeddedClip {
+        std::filesystem::path archive;
+        std::uint64_t offset{};
+        std::uint32_t size{};
+        std::vector<std::uint8_t> head;
+    };
+    static std::vector<EmbeddedClip> clips;
+    static bool indexed = false;
+    if (!indexed) {
+        indexed = true;
+        for (const auto &[key, file] : file_table.virtual_files_by_path) {
+            std::string extension = file.native_path.extension().string();
+            std::transform(extension.begin(), extension.end(), extension.begin(),
+                           [](unsigned char ch) { return static_cast<char>(std::toupper(ch)); });
+            if (extension != ".AM") continue;
+            std::ifstream input(file.native_path, std::ios::binary);
+            if (!input) continue;
+            const std::vector<std::uint8_t> bytes((std::istreambuf_iterator<char>(input)),
+                                                  std::istreambuf_iterator<char>());
+            for (std::size_t i = 0u; i + 12u <= bytes.size(); ++i) {
+                if (bytes[i] != 'R' || std::memcmp(&bytes[i], "RIFF", 4u) != 0 ||
+                    std::memcmp(&bytes[i + 8u], "WAVE", 4u) != 0) continue;
+                const std::uint32_t size = (static_cast<std::uint32_t>(bytes[i + 4u]) |
+                    static_cast<std::uint32_t>(bytes[i + 5u]) << 8u |
+                    static_cast<std::uint32_t>(bytes[i + 6u]) << 16u |
+                    static_cast<std::uint32_t>(bytes[i + 7u]) << 24u) + 8u;
+                if (size < 12u || i + size > bytes.size()) continue;
+                const std::size_t head = std::min<std::size_t>(size, 256u);
+                clips.push_back({file.native_path, i, size,
+                                 std::vector<std::uint8_t>(bytes.begin() + static_cast<std::ptrdiff_t>(i),
+                                                           bytes.begin() + static_cast<std::ptrdiff_t>(i + head))});
+            }
+        }
+        if (std::getenv("PSPRECOMP_ATRAC_DIAG") != nullptr)
+            std::cerr << "[atrac] indexed " << clips.size() << " clips inside sound archives\n";
+    }
+    for (const EmbeddedClip &clip : clips) {
+        if (clip.size != parsed.file_size) continue;
+        const std::size_t compare = std::min(compare_size, clip.head.size());
+        if (!std::equal(clip.head.begin(), clip.head.begin() + static_cast<std::ptrdiff_t>(compare), header.begin()))
+            continue;
+        return std::filesystem::path("subfile,,start," + std::to_string(clip.offset) + ",end," +
+                                     std::to_string(clip.offset + clip.size) + ",,:file:" +
+                                     clip.archive.string());
     }
     return {};
 }
@@ -4132,9 +4207,13 @@ bool gpu_color_preview_enabled() noexcept {
 }
 
 void dump_gpu_internal_frame_if_requested(std::uint64_t vblank) {
+    // PSPRECOMP_GE_GPU_DUMP_STRIDE: keep capturing every N vblanks after the first,
+    // each file suffixed with its vblank (diagnostics: following an on-screen timer).
     static bool dumped = false;
-    const std::uint64_t requested = gpu_dump_vblank();
-    if (dumped || requested == 0u || vblank < requested) return;
+    static const std::uint64_t stride = parse_environment_u64("PSPRECOMP_GE_GPU_DUMP_STRIDE", 0u);
+    static std::uint64_t next_vblank = 0u;
+    const std::uint64_t requested = std::max(gpu_dump_vblank(), next_vblank);
+    if (dumped || gpu_dump_vblank() == 0u || vblank < requested) return;
     const GeGpuBackendReport report = ge_gpu_backend_report();
     if (report.game_frame_vblank == 0u || report.offscreen_width == 0u ||
         report.offscreen_height == 0u || report.game_frame_readback_bytes == 0u) return;
@@ -4144,6 +4223,9 @@ void dump_gpu_internal_frame_if_requested(std::uint64_t vblank) {
     if (const char *path = std::getenv("PSPRECOMP_GE_GPU_DUMP_PATH");
         path != nullptr && *path != '\0') {
         output_path = path;
+        if (stride != 0u)
+            output_path = output_path.parent_path() /
+                (output_path.stem().string() + "_" + std::to_string(vblank) + output_path.extension().string());
     } else {
         std::ostringstream name;
         name << "VCSNative_internal_" << report.offscreen_width << 'x'
@@ -4171,7 +4253,7 @@ void dump_gpu_internal_frame_if_requested(std::uint64_t vblank) {
             for(std::size_t i=0;i<filtered.size();i+=4)fxaa_file.write(reinterpret_cast<const char*>(filtered.data()+i),3);
             if(!fxaa_file)throw psprecomp::Error("Could not save GPU FXAA capture");
         }
-        dumped = true;
+        if (stride != 0u) next_vblank = vblank + stride; else dumped = true;
         std::cerr << "[gpu-internal-frame] vblank=" << report.game_frame_vblank
                   << " resolution=" << report.offscreen_width << 'x' << report.offscreen_height
                   << " changed_pixels=" << report.game_frame_changed_pixels
@@ -4331,16 +4413,23 @@ std::chrono::steady_clock::duration frame_pacing_wait_this_vblank{};
 // with the cap enabled at 20 fps. RENEGADE_FRAME_RATE_CAP replaces only that
 // shipped value; anything else the game writes is left untouched. 0 keeps the
 // original PSP behaviour.
+// The menu (PC.FrameRateCap) can replace the cap while running: a value the
+// game still holds from the previous cap is rewritten like the shipped one.
+float frame_rate_cap_setting = -1.0f;
+float frame_rate_cap_previous = 0.0f;
 void apply_frame_rate_cap(psprecomp::GuestMemory &memory) {
-    static const float cap = [] {
-        const char *text = std::getenv("RENEGADE_FRAME_RATE_CAP");
-        if (text == nullptr || *text == '\0') return 0.0f;
-        char *end = nullptr;
-        const double value = std::strtod(text, &end);
-        if (end == text || *end != '\0' || !(value == 0.0 || (value >= 20.0 && value <= 240.0)))
-            throw psprecomp::Error("RENEGADE_FRAME_RATE_CAP must be 0 or a frame rate from 20 to 240");
-        return static_cast<float>(value);
-    }();
+    if (frame_rate_cap_setting < 0.0f) {
+        frame_rate_cap_setting = [] {
+            const char *text = std::getenv("RENEGADE_FRAME_RATE_CAP");
+            if (text == nullptr || *text == '\0') return 0.0f;
+            char *end = nullptr;
+            const double value = std::strtod(text, &end);
+            if (end == text || *end != '\0' || !(value == 0.0 || (value >= 20.0 && value <= 240.0)))
+                throw psprecomp::Error("RENEGADE_FRAME_RATE_CAP must be 0 or a frame rate from 20 to 240");
+            return static_cast<float>(value);
+        }();
+    }
+    const float cap = frame_rate_cap_setting;
     if (cap == 0.0f) return;
     // Controller replays are recorded against vblank numbers at the shipped
     // 20 fps; a diagnostic run can defer the cap until the replay reaches play.
@@ -4350,9 +4439,35 @@ void apply_frame_rate_cap(psprecomp::GuestMemory &memory) {
     constexpr std::uint32_t kSettingValue = 0x08B1CBB8u;
     constexpr std::uint32_t kMaxFrameRate = 0x08B285CCu;
     const std::uint32_t replacement = std::bit_cast<std::uint32_t>(cap);
+    const std::uint32_t previous = std::bit_cast<std::uint32_t>(frame_rate_cap_previous);
     for (const std::uint32_t address : {kSettingValue, kMaxFrameRate})
-        if (memory.contains(address, 4u) && memory.load32(address) == kShippedCap)
+        if (memory.contains(address, 4u) &&
+            (memory.load32(address) == kShippedCap || (previous != 0u && memory.load32(address) == previous)))
             memory.store32(address, replacement);
+}
+
+// Diagnostics only: RENEGADE_RAM_SNAPSHOT_AT="first:step:last" dumps RAM to
+// RENEGADE_RAM_SNAPSHOT_DIR/ram_<vblank>.bin (read-only; nothing is written to the game).
+void apply_diagnostic_memory_actions(psprecomp::GuestMemory &memory) {
+    static const std::array<std::uint64_t, 3> snapshots = [] {
+        std::array<std::uint64_t, 3> out{0u, 1u, 0u};
+        const char *text = std::getenv("RENEGADE_RAM_SNAPSHOT_AT");
+        if (text == nullptr) return out;
+        std::stringstream all(text);
+        std::string item;
+        for (std::size_t i = 0u; i < 3u && std::getline(all, item, ':'); ++i) out[i] = std::stoull(item);
+        if (out[1] == 0u) out[1] = 1u;
+        return out;
+    }();
+    if (snapshots[2] != 0u && display_vblank_index >= snapshots[0] && display_vblank_index <= snapshots[2] &&
+        (display_vblank_index - snapshots[0]) % snapshots[1] == 0u) {
+        const char *dir = std::getenv("RENEGADE_RAM_SNAPSHOT_DIR");
+        const std::filesystem::path path = std::filesystem::path(dir ? dir : ".") /
+            ("ram_" + std::to_string(display_vblank_index) + ".bin");
+        const auto bytes = memory.bytes();
+        std::ofstream file(path, std::ios::binary);
+        file.write(reinterpret_cast<const char *>(bytes.data()), static_cast<std::streamsize>(bytes.size()));
+    }
 }
 
 void limit_frame_rate() {
@@ -5389,6 +5504,24 @@ bool event_flag_matches(const EventFlagRecord &flag, std::uint32_t requested, st
 void consume_event_flag(EventFlagRecord &flag, std::uint32_t requested, std::uint32_t mode) {
     if ((mode & 0x20u) != 0u) flag.current_pattern &= ~requested;
     if ((mode & 0x10u) != 0u) flag.current_pattern = 0u;
+}
+
+std::uint32_t pc_settings_allocate_block(psprecomp::Runtime &rt, std::uint32_t size, const char *name) {
+    constexpr std::uint32_t alignment = 0x100u;
+    const std::uint32_t aligned_size = (size + alignment - 1u) & ~(alignment - 1u);
+    const std::uint32_t address = (partition_table.next_address + alignment - 1u) & ~(alignment - 1u);
+    if (aligned_size == 0u || !rt.memory().contains(address, aligned_size)) return 0u;
+    rt.memory().zero(address, aligned_size);
+    const std::int32_t uid = partition_table.next_uid++;
+    partition_table.blocks.emplace(uid, PartitionBlock{name, address, aligned_size});
+    partition_table.next_address = address + aligned_size;
+    return address;
+}
+
+void pc_settings_set_frame_rate_cap(float cap) {
+    if (cap == frame_rate_cap_setting) return;
+    frame_rate_cap_previous = frame_rate_cap_setting;
+    frame_rate_cap_setting = cap;
 }
 
 void install_profile(psprecomp::Runtime &runtime, std::uint32_t user_arena_start) {
@@ -7194,7 +7327,9 @@ void install_profile(psprecomp::Runtime &runtime, std::uint32_t user_arena_start
         };
         capture_frame_if_requested(rt.memory(), displayed);
         renegade::input008::frame_tick(display_vblank_index);
+        renegade::pc_settings::poll(rt, ctx);
         apply_frame_rate_cap(rt.memory());
+        apply_diagnostic_memory_actions(rt.memory());
         dump_ram_if_requested(rt.memory());
         ge_gpu_backend_set_display_framebuffer(display_state.frame_buffer);
         project2dfx_render_frame(
@@ -7419,12 +7554,16 @@ void install_profile(psprecomp::Runtime &runtime, std::uint32_t user_arena_start
             std::size_t limit=out_length-1u;
             if(out_limit!=0u)limit=std::min<std::size_t>(limit,out_limit);
             limit=std::clamp<std::size_t>(limit,1u,255u);
-            const std::string title=read_guest_utf16(memory,memory.load32(data+28u),64u);
+            // Renegade passes the suggested name (e.g. "Col Serra") as the OSK
+            // description and an empty initial text; the PC box pre-fills the
+            // field with it and keeps its own title.
+            const std::string description=read_guest_utf16(memory,memory.load32(data+28u),64u);
             OskUtilityState next;next.status=UtilityStatus::Init;next.parameter=p;next.data=data;
             next.initial=read_guest_utf16(memory,memory.load32(data+32u),limit);
+            if(next.initial.empty())next.initial=description.substr(0,limit);
             memory.store32(p+0x1cu,0u);
             osk_utility=std::move(next);
-            display_window_begin_text_entry(title,osk_utility.initial,limit);
+            display_window_begin_text_entry(std::string(),osk_utility.initial,limit);
             set_success(ctx);
         });
     // sceUtilityOskGetStatus
@@ -8803,10 +8942,17 @@ void install_profile(psprecomp::Runtime &runtime, std::uint32_t user_arena_start
             // Reopen when the movie changes, not merely when nothing is open: a
             // context is reused across cutscenes, and an exhausted stream from
             // the previous one still reports itself as open.
+            // The soundtrack the guest registered (ATRAC stream type 1). The planet
+            // movies carry one per language, 0-4; the game picks by its language.
+            std::uint32_t substream = 0u;
+            for (const auto &[id, stream] : mpeg.streams)
+                if (stream.type == 1u) { substream = stream.number; break; }
             if (!mpeg.source_path.empty() &&
-                (!mpeg.audio.is_open() || mpeg.audio_source != mpeg.source_path)) {
+                (!mpeg.audio.is_open() || mpeg.audio_source != mpeg.source_path ||
+                 mpeg.audio_substream != substream)) {
                 mpeg.audio_source = mpeg.source_path;
-                (void)mpeg.audio.open(mpeg.source_path);
+                mpeg.audio_substream = substream;
+                (void)mpeg.audio.open(mpeg.source_path, substream);
             }
             std::array<std::uint8_t, 8192u> pcm{};
             const std::size_t decoded = mpeg.audio.is_open()
@@ -9213,7 +9359,7 @@ void install_profile(psprecomp::Runtime &runtime, std::uint32_t user_arena_start
             const std::uint32_t mode = is_directory ? 0x1000u : 0x2000u;
             rt.memory().store32(dirent, mode);
             if (!is_directory) {
-                if (const auto *disc_file = register_virtual_disc_file(entry.path())) {
+                if (const auto *disc_file = register_virtual_disc_file(resolve_file_override(rt, entry.path()))) {
                     rt.memory().store32(dirent + 8u, static_cast<std::uint32_t>(disc_file->size));
                     rt.memory().store32(dirent + 12u, static_cast<std::uint32_t>(disc_file->size >> 32u));
                     rt.memory().store32(dirent + 0x40u, disc_file->start_sector);
@@ -9429,7 +9575,8 @@ void install_profile(psprecomp::Runtime &runtime, std::uint32_t user_arena_start
     runtime.register_hle("IoFileMgrForUser", 0x109F50BCu,
         [](psprecomp::Runtime &rt, psprecomp::AllegrexContext &ctx) {
             const std::string path = rt.memory().read_c_string(ctx.gpr[4]);
-            const auto native = rt.translate_path(path);
+            renegade::pc_settings::ensure_registered(rt, ctx, path);
+            const auto native = resolve_file_override(rt, rt.translate_path(path));
             std::ios::openmode mode = std::ios::binary;
             const std::uint32_t flags = ctx.gpr[5];
             const bool file_object_diag = std::getenv("PSPRECOMP_FILE_OBJECT_DIAG") != nullptr;
@@ -9459,6 +9606,9 @@ void install_profile(psprecomp::Runtime &runtime, std::uint32_t user_arena_start
                     if (parsed) {
                         if (const auto *disc_file = find_virtual_disc_file(
                                 static_cast<std::uint32_t>(raw_lbn), raw_size)) {
+                            // Renegade reads its files as raw UMD ranges; the menu
+                            // files are the trigger for the PC settings registration.
+                            renegade::pc_settings::ensure_registered(rt, ctx, disc_file->native_path.string());
                             std::fstream stream(disc_file->native_path, std::ios::binary | std::ios::in);
                             if (stream) {
                                 const auto fd = file_table.next_fd++;

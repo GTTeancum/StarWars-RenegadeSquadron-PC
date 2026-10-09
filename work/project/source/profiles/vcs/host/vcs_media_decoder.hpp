@@ -54,9 +54,11 @@ private:
 // stream whose substream id means nothing to MPEG-PS. libavformat therefore
 // reports the file as video-only, which is why the intro played silent.
 //
-// So the container is walked here instead: every 0xBD packet, minus a four-byte
-// PSP substream header, concatenated into one ATRAC3+ elementary stream and
-// handed to the same decoder the radio uses.
+// So the container is walked here instead, pack by pack: the 0xBD packets of one
+// substream, minus their four-byte PSP substream header, concatenated into one
+// ATRAC3+ elementary stream and handed to the same decoder the radio uses. The
+// planet movies carry five substreams (0-4, one soundtrack per language); mixing
+// them into one stream decoded as noise after the first few frames.
 class PmfAudioDecoder {
 public:
     PmfAudioDecoder();
@@ -66,7 +68,8 @@ public:
     PmfAudioDecoder(PmfAudioDecoder &&) noexcept;
     PmfAudioDecoder &operator=(PmfAudioDecoder &&) noexcept;
 
-    [[nodiscard]] bool open(const std::filesystem::path &path);
+    // substream: the ATRAC stream number the guest registered (sceMpegRegistStream type 1).
+    [[nodiscard]] bool open(const std::filesystem::path &path, std::uint32_t substream = 0u);
     [[nodiscard]] std::size_t read(std::span<std::uint8_t> output);
     [[nodiscard]] bool is_open() const noexcept;
     void close() noexcept;

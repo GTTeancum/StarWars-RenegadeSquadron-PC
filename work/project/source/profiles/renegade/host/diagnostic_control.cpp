@@ -26,11 +26,14 @@ void control_vblank(psprecomp::Runtime& r,const vcs::FramebufferDescription& des
  for(;;){
   // Host pause is not a guest clock step. Keep the native toolbar responsive.
   if(vcs::display_window_close_requested()){r.stop("Display window closed by the user");return;}
-  {std::ifstream in(s.dir/"command.txt");if(in){std::string a,b,c,d,e,junk;if((in>>a>>b>>c>>d>>e)&&!(in>>junk)){
+  {std::ifstream in(s.dir/"command.txt");if(in){std::string a,b,c,d,e,junk;if((in>>a>>b>>c>>d>>e)&&(!(in>>junk)||junk.rfind("text:",0)==0)){
+   // Optional sixth field "text:<chars>" types into the PC text-entry box ({enter} confirms, {esc} cancels).
+   const std::string typed=junk.rfind("text:",0)==0?junk.substr(5):std::string();
    auto parse=[](const std::string& text){if(text.empty()||text[0]=='-')throw psprecomp::Error("Negative controller command");std::size_t n;auto v=std::stoull(text,&n,0);if(n!=text.size())throw psprecomp::Error("Invalid controller number");return v;};
    auto sequence=parse(a),until=parse(b),buttons=parse(c),x=parse(d),y=parse(e);
    if(sequence>s.sequence){if(buttons>0x3ffff||x>255||y>255||(until&&(until<=frame||until-frame>36000)))throw psprecomp::Error("Controller step outside allowed range");
     s.sequence=sequence;s.until=until;s.buttons=buttons;s.x=x;s.y=y;
+    if(!typed.empty())vcs::display_window_inject_text(typed);
     std::ofstream record(s.dir/"commands.log",std::ios::app);record<<s.sequence<<" "<<frame<<" "<<until<<" "<<buttons<<" "<<x<<" "<<y<<"\n";record.close();status(s,frame,filename,false,gpu);
     if(!until)r.stop("Controller diagnostic stop at "+std::to_string(frame));return;
    }

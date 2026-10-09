@@ -57,7 +57,7 @@ else()
 endif()
 target_precompile_headers(renegade_aot PRIVATE <psprecomp/runtime.hpp> <bit> <cmath> <cstdint> <limits>)
 endif()
-set(SERVICES host/control_context009.cpp host/material_audit009.cpp host/control_bridge008.cpp host/modern_input008.cpp host/savedata_io006.cpp host/psp_services.cpp host/extra_hle.cpp host/platform_services.cpp host/psmf_services.cpp host/display_sdl.cpp host/audio_sdl.cpp host/diagnostic_control.cpp host/precise_wait.cpp)
+set(SERVICES host/control_context009.cpp host/material_audit009.cpp host/control_bridge008.cpp host/modern_input008.cpp host/savedata_io006.cpp host/psp_services.cpp host/extra_hle.cpp host/platform_services.cpp host/psmf_services.cpp host/display_sdl.cpp host/audio_sdl.cpp host/diagnostic_control.cpp host/precise_wait.cpp host/pc_settings.cpp host/game_font.cpp)
 foreach(name framebuffer_capture vcs_config vcs_camera_input
   vcs_vehicle_input vcs_fps_overlay vcs_media_decoder vcs_project2dfx
   vcs_project2dfx_lights vcs_draw_distance_patch vcs_runtime_log
@@ -97,6 +97,19 @@ if(TARGET renegade_verify_aot)
  add_dependencies(RenegadeNative renegade_verify_aot)
 endif()
 set_target_properties(RenegadeNative PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
+# The player build: the same program with no console window, started by double-clicking
+# (installed layout, see host/main.cpp). RenegadeNative stays the console build for scripts.
+if(WIN32)
+ add_executable(RenegadeSquadron WIN32 host/main.cpp)
+ if(MSVC)
+  target_link_options(RenegadeSquadron PRIVATE /STACK:16777216 /ENTRY:mainCRTStartup)
+ endif()
+ target_link_libraries(RenegadeSquadron PRIVATE renegade_aot renegade_services)
+ if(TARGET renegade_verify_aot)
+  add_dependencies(RenegadeSquadron renegade_verify_aot)
+ endif()
+ set_target_properties(RenegadeSquadron PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
+endif()
 
 find_library(RENEGADE_SDL2 NAMES SDL2 SDL2-2.0 libSDL2-2.0.so.0 REQUIRED)
 target_link_libraries(renegade_services PUBLIC ${RENEGADE_SDL2})

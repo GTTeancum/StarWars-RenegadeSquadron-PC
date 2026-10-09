@@ -13,11 +13,16 @@ struct RawPad {
  bool connected{},enabled{};
  std::int16_t lx{},ly{},rx{},ry{},lt{},rt{};
  std::uint32_t buttons{};
+ // Keyboard/mouse sample: the mouse motion of this frame replaces the right
+ // stick (Asura PC feeds mouse velocity to the look axes the same way).
+ bool mouse_look{}; float mouse_dx{},mouse_dy{};
+ bool activity{}; // any key, button or motion this frame (device takeover)
 };
 struct Config {
  float left_deadzone=7849.f/32767.f,right_deadzone=8689.f/32767.f;
  float look_x=1.f,look_y=1.f,curve=1.f,trigger_threshold=30.f/255.f;
  bool invert_y{};
+ float mouse_sensitivity=1.f; bool mouse_invert_y{};
 };
 struct Frame {
  bool active{},enabled{};
@@ -28,6 +33,8 @@ Config config_from_environment();
 bool modern_enabled();
 Frame normalize(const RawPad&,const Config&);
 RawPad live_gamepad(); // production SDL high-level game-controller sampler
+RawPad live_keyboard_mouse(); // keyboard/mouse reduced to the same pad model
+bool keyboard_mouse_active(); // last input came from the keyboard or mouse
 void frame_tick(std::uint64_t vblank);
 Frame current();
 float trigger_threshold();
@@ -36,6 +43,8 @@ bool pending_action(unsigned action); // consume a per-action, latched rising ed
 void quarantine_held_actions009(); // input ownership transition, no guest state writes
 void reset();
 void reset(const Config&); // deterministic test config
+Config config();
+void set_config(const Config&); // settings menu: sensitivity/deadzones/invert, no state reset
 void accept_sample(std::uint64_t,const RawPad&); // same path for live/diagnostic/test input
 void action_getter(psprecomp::Runtime&,psprecomp::AllegrexContext&);
 }
