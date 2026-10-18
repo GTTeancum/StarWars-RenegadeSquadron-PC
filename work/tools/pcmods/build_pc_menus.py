@@ -40,6 +40,9 @@ TEXTS = {
     'PC_DEADZONE_L': 'Left Stick Deadzone',
     'PC_DEADZONE_R': 'Right Stick Deadzone',
     'PC_INVERT_Y': 'Invert Look',
+    'PC_VIEW_CENTERING': 'View Centering',
+    'PC_SPRINT_1': 'Sprint: Toggle',
+    'PC_SPRINT_0': 'Sprint: Hold',
     'PC_SCHEME_0': 'Layout: Modern',
     'PC_SCHEME_1': 'Layout: Original',
     'PC_QUIT': 'Quit Game',
@@ -77,6 +80,16 @@ def text_child(o, child_name, text_id):
     G.find(o, child_name)['text_id'] = H(text_id)
 
 def set_var(o, name): o['console_var'] = {'version': 0, 'name': name}
+
+def bind_slider(o, name, lo, hi):
+    """Binds a cloned slider to a console variable: the bar's ten segments show by a
+    'var >= threshold' condition, so they must follow the new variable and its range."""
+    set_var(o, name)
+    bits = [c for c in o['children'] if c['name'].startswith('E_IM_Sliderbit') and c['condition_manager']['vars']]
+    for i, c in enumerate(bits):
+        value = lo + (hi - lo) * (i + 1) / len(bits)
+        for v in c['condition_manager']['vars']:
+            v['var'] = {'version': 0, 'name': name}; v['value'] = ('%.4f' % value).rstrip('0').rstrip('.')
 
 def chain(widgets, up=2, down=3):
     """Vertical nav list: slots [left, right, up, down]; wraps like the shipped menus."""
@@ -146,30 +159,42 @@ def gamepad_page(sens_page, name, back_page, src):
     back = [c for c in page['children'] if c['type'] == G.T_BUTTON and c['name'].startswith('W_BU_Back')][0]
     back['link_to'] = H(back_page)
     sliders = [c for c in page['children'] if c['type'] == G.T_SLIDER]
-    binds = [('PC.LookSensitivityX', 'PC_LOOK_X'), ('PC.LookSensitivityY', 'PC_LOOK_Y'),
-             ('PC.LeftDeadzone', 'PC_DEADZONE_L'), ('PC.RightDeadzone', 'PC_DEADZONE_R')]
-    for s, (var, tid) in zip(sliders, binds):
-        set_var(s, var); text_child(s, 'E_IM_Slider_Text', tid)
+    # ranges match the PC.* registrations in pc_settings.cpp
+    binds = [('PC.LookSensitivityX', 'PC_LOOK_X', 0.1, 2.0), ('PC.LookSensitivityY', 'PC_LOOK_Y', 0.1, 2.0),
+             ('PC.LeftDeadzone', 'PC_DEADZONE_L', 0.0, 0.5), ('PC.RightDeadzone', 'PC_DEADZONE_R', 0.0, 0.5)]
+    for s, (var, tid, lo, hi) in zip(sliders, binds):
+        bind_slider(s, var, lo, hi); text_child(s, 'E_IM_Slider_Text', tid)
     invert = [c for c in page['children'] if c['type'] == G.T_CHECKBOX][0]
     set_var(invert, 'PC.InvertY'); text_child(invert, 'E_IM_StyleCheckBoxText', 'PC_INVERT_Y')
     for c in page['children']:
         if c['type'] == G.T_TEXT and c['name'] == 'W_TB_Infantry_sensitivity': c['text_id'] = H('PC_GAMEPAD')
     layout = clone(src['scheme_button'], 'W_BU_Layout', name)
-    pos(layout, 190, 130); command(layout, 'PC_ControlSchemeNext'); layout['link_to'] = 0
+    pos(layout, 190, 122); command(layout, 'PC_ControlSchemeNext'); layout['link_to'] = 0
     for tname, value, tid in (('E_TX_DefaultControlScheme', 0, 'PC_SCHEME_0'), ('E_TX_AlternateControlScheme', 1, 'PC_SCHEME_1')):
         t = G.find(layout, tname); t['text_id'] = H(tid); condition(t, 'PC.ControlScheme', value)
-    mouse = clone(sliders[0], 'W_SL_MouseSensitivity', name); pos(mouse, 190, 170)
-    set_var(mouse, 'PC.MouseSensitivity'); text_child(mouse, 'E_IM_Slider_Text', 'PC_MOUSE_SENS')
-    minvert = clone(invert, 'W_CB_MouseInvert', name); pos(minvert, 190, 212)
+    # The PSP camera re-levels the view after a moment without look input (off by default on PC).
+    centering = clone(invert, 'W_CB_ViewCentering', name); pos(centering, 190, 146)
+    set_var(centering, 'PC.ViewCentering'); text_child(centering, 'E_IM_StyleCheckBoxText', 'PC_VIEW_CENTERING')
+    mouse = clone(sliders[0], 'W_SL_MouseSensitivity', name); pos(mouse, 190, 178)
+    bind_slider(mouse, 'PC.MouseSensitivity', 0.1, 5.0); text_child(mouse, 'E_IM_Slider_Text', 'PC_MOUSE_SENS')
+    minvert = clone(invert, 'W_CB_MouseInvert', name); pos(minvert, 190, 216)
     set_var(minvert, 'PC.MouseInvertY'); text_child(minvert, 'E_IM_StyleCheckBoxText', 'PC_MOUSE_INVERT')
-    page['children'] += [layout, mouse, minvert]
-    right = [invert, layout, mouse, minvert]
+    page['children'] += [layout, centering, mouse, minvert]
+    right = [invert, layout, centering, mouse, minvert]
     for w in sliders + right: w['nav'] = [0, 0, 0, 0]
     chain(sliders); chain(right)
     for w in sliders: w['nav'][1] = invert['hash']
     for w in right: w['nav'][0] = sliders[0]['hash']
     page['startup_widget'] = sliders[0]['hash']
     return page
+
+def sprint_button(src, parent_path):
+    """Sprint mode cycler (PC.SprintToggle 1 = toggle, 0 = hold), styled like Control Scheme."""
+    b = clone(src['scheme_button'], 'W_BU_SprintMode', parent_path)
+    command(b, 'PC_SprintModeNext'); b['link_to'] = 0
+    for tname, value, tid in (('E_TX_DefaultControlScheme', 1, 'PC_SPRINT_1'), ('E_TX_AlternateControlScheme', 0, 'PC_SPRINT_0')):
+        t = G.find(b, tname); t['text_id'] = H(tid); condition(t, 'PC.SprintToggle', value)
+    return b
 
 def quit_page(main_page, question_text, name, back_page):
     """Quit confirmation built from the main menu's own elements (its button and
@@ -228,9 +253,13 @@ def main():
     pad_btn = clone(sens_btn, 'W_BU_PCControls', 'MP_Controls_FrontEnd')
     pad_btn['link_to'] = H('MP_PCControls_FrontEnd'); text_child(pad_btn, 'E_TX_StyleButtonText', 'PC_CONTROLS'); pos(pad_btn, 30, 220)
     fe_controls['children'].insert(fe_controls['children'].index(sens_btn) + 1, pad_btn)
-    corder = ['W_BU_ControlScheme', 'W_BU_StyleButtonInfantryControls', 'W_BU_StyleButtonVehicleControls',
+    fe_sprint = sprint_button(src, 'MP_Controls_FrontEnd')
+    fe_controls['children'].insert(fe_controls['children'].index(pad_btn) + 1, fe_sprint)
+    corder = ['W_BU_ControlScheme', 'W_BU_SprintMode', 'W_BU_StyleButtonInfantryControls', 'W_BU_StyleButtonVehicleControls',
               'W_BU_StyleButtonSpacecraftControls', 'W_BU_StyleButtonControlsSensitivity', 'W_BU_PCControls']
-    chain([G.find(fe_controls, n) for n in corder])
+    feb = [G.find(fe_controls, n) for n in corder]
+    for i, b in enumerate(feb): pos(b, 30, 68 + 26 * i)   # seven rows above the bottom prompts
+    chain(feb)
     add_page(options, 'MP_ControlsSensitivity',
              gamepad_page(options.page('MP_ControlsSensitivity'), 'MP_PCControls_FrontEnd', 'MP_Controls_FrontEnd', src))
 
@@ -248,10 +277,11 @@ def main():
     ig_pad = clone(ig_sens, 'W_BU_PCControls', 'MP_Controls_InGame')
     ig_pad['link_to'] = H('MP_PCControls_InGame'); text_child(ig_pad, 'E_TX_StyleButtonText', 'PC_CONTROLS')
     ig_controls['children'].append(ig_pad)
-    igorder = ['W_BU_ControlScheme', 'W_BU_StyleButtonInfantryControls', 'W_BU_StyleButtonVehicleControls',
+    ig_controls['children'].append(sprint_button(src, 'MP_Controls_InGame'))
+    igorder = ['W_BU_ControlScheme', 'W_BU_SprintMode', 'W_BU_StyleButtonInfantryControls', 'W_BU_StyleButtonVehicleControls',
                'W_BU_StyleButtonVehicleControls 1', 'W_BU_StyleButtonControlsSensitivity', 'W_BU_PCControls']
     igb = [G.find(ig_controls, n) for n in igorder]
-    for i, b in enumerate(igb): pos(b, 29, 75 + 30 * i)
+    for i, b in enumerate(igb): pos(b, 29, 73 + 26 * i)
     chain(igb)
     add_page(ingame, 'MP_ControlsSensitivity_InGame',
              gamepad_page(ingame.page('MP_ControlsSensitivity_InGame'), 'MP_PCControls_InGame', 'MP_Controls_InGame', src))

@@ -5,7 +5,14 @@ A native Windows port of the PSP game *Star Wars Battlefront: Renegade Squadron*
 Windows executable. There is no emulator. A native host layer replaces the PSP system services, and
 the game is drawn with DirectX 12.
 
-No game data is included. You need your own copy of the game.
+The game's disc data is not included. You need your own copy of the game.
+
+## Download
+
+Windows builds are on the [Releases](https://github.com/GTTeancum/StarWars-RenegadeSquadron-PC/releases) page.
+Extract the zip, put the `PSP_GAME` folder from your extracted US disc (ULUS10292) in its `data` folder,
+and run `RenegadeSquadron.exe`. The HD texture pack is a separate download from the same release;
+extract it into `mods\textures`.
 
 ![Echo Base](docs/screenshots/echo-base.png)
 
@@ -90,7 +97,10 @@ replacement textures in `mods\textures\`, menu/text overrides in `mods\files\`, 
 The settings file holds the PC-mode options (window size, fullscreen, frame rate cap, lighting, shadows,
 bloom, fog, textures, volume, controller); the same options are in the game's Options menu (Video Options,
 Controls > Gamepad & Mouse) and the main menu has Quit Game. Keyboard and mouse play works alongside the
-controller (WASD, mouse look, Esc pauses; keys in the settings file's [Keyboard] section).
+controller (WASD, mouse look, Esc pauses; keys in the settings file's [Keyboard] section), and the menus
+take the mouse (hover, click, right-click back, wheel, slider drag, list rows, number arrows), including the
+Instant Action playlist. View centering (the PSP camera re-levelling the view) is off by default and can be turned
+on in the Gamepad & Mouse page; button prompts show Xbox controller buttons.
 Options are documented in [PC-MODE.md](PC-MODE.md), for example:
 
 ```

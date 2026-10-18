@@ -54,6 +54,38 @@ No original disc files need to be changed.
 
 
 
+## Replace textures by name (complete dump and manifest)
+
+`work\tools\pcmods\texture_dump.py` reads every texture straight from your disc (no gameplay
+needed: all 4,963 texture resources in the level, menu and graphics archives) and writes
+`work\texture-dump\textures\<name>.tga`, one 32-bit TGA per texture name (1,013 names), plus
+`names.tsv` (every runtime texture ID to its name) and `index.json` (name to source path, sizes,
+levels and IDs). `--install <pack>\textures` copies `names.tsv` into a pack.
+
+Each level file carries its own copy of the unit, vehicle and weapon textures, at three sizes, and
+the game recolours unit palettes when it loads them, so one texture can appear under many IDs.
+With `names.tsv` in the pack, a single `<name>.tga` (for example `imp_inf_scout.tga`) replaces the
+texture on every level, at every size. Lookup order for each texture the game draws:
+
+1. `tex-v1-<id>.png` (exact ID, as before; still wins)
+2. `<name>~2.tga` / `<name>~3.tga` for that particular copy, where a name has several copies
+3. `<name>.tga` (`.dds` and `.png` also work; `.dds` wins, then `.tga`, then `.png`)
+
+`textures\manifest.json` can point names at other files, so all new images can live in one folder
+under any name: `{"imp_inf_scout": "scout_hd.tga", "x_wing~3": "xwing_alt.tga"}`.
+Normal maps (`<name>_n.tga`) and alpha policies (`<name>.json`) follow the same names. Textures
+matched through a recoloured palette keep the game's own alpha unless a policy file says
+`{"alpha": "replacement"}`.
+
+The dump is uncompressed 32-bit TGA because Photoshop opens a TGA's alpha as an alpha channel
+("Alpha 1") instead of as transparency. On unit textures that channel is not transparency but the
+colour-zone map the game uses to recolour units: 255 = keep as painted, 0 = colour zone 1, about
+128 = colour zone 2. Keep it in replacements: unit replacements currently show their own colours
+(the game's recolouring is not yet carried over to them), and recolour support will read this channel.
+
+Textures that exist only while the game runs (screen copies, colour-cycling and generated images,
+about 1,700 IDs) have no name and are still replaced by ID.
+
 ## Folder layout
 
 
@@ -392,3 +424,19 @@ Korriban's supplied archive contains normal-map option files but omits 25 refere
 
 The original `.\Capture-Converted-OrdMantell.ps1` remains available for its recorded Ord Mantell replay. Use the generic launcher above for the current verified map choices and per-frame coverage reports. See `outputs/CHECKPOINT-082.md` for the first integration evidence and `outputs/CHECKPOINT-083.md` for current behavior.
 
+
+## AI-upscaled texture pack (4x)
+
+`work\tools\pcmods\upscale_pack.py` upscales every texture in `mods\textures` that is still the
+game's original picture (files differing from `mods\original-textures` are never touched) and writes 4x
+TGA files by name. Models, chosen from side-by-side samples:
+
+- **4x Nomos8kSC** (Phhofm, CC BY 4.0) for UI (menus, load screens, fonts, HUD, minimaps) and characters.
+- **4x UltraSharp** (Kim2091, CC BY-NC-SA 4.0, non-commercial) for scenery, vehicles, weapons and anything else.
+
+Both are ESRGAN models converted to ONNX by `esrgan_onnx.py` (no PyTorch; the converter only accepts
+weight tensors from the model file) and run on the GPU through onnxruntime-directml in a private
+environment (`work\upscale-pc\venv`). Load-screen halves are joined before upscaling, tiling textures
+are padded by wrapping, colour-zone alpha masks are replicated exactly, and single-colour sprites
+(font pages) keep their exact colour with only the shape upscaled. A manifest of every file is in
+`work\upscale-pc\manifest.json`. The PC button glyphs are excluded.

@@ -21,6 +21,14 @@ GAME = r'C:\Games\Star Wars Renegade Squadron\data\PSP_GAME\USRDIR'
 ATLAS_ID = 'tex-v1-8f8ec0dadcd9cedf2611d3a2a10d05d656502109752f6461229d9f302348f7b2'
 ORIGINAL = os.path.join(REPO, r'work\texture-dumps-live\textures', ATLAS_ID + '.png')
 SIZE = 512
+GAME_ROOT = r'C:\Games\Star Wars Renegade Squadron'
+PACK = os.path.join(GAME_ROOT, r'mods\textures')
+DUMP = os.path.join(GAME_ROOT, r'mods\original-textures')
+# The single-button textures the controls pages draw (16x16 / 32x16 on the PSP),
+# written at four times their size with the same glyph mapping as the atlas.
+SINGLES = {'button_x': 'A', 'button_circle': 'B', 'button_square': 'X', 'button_triangle': 'Y',
+           'button_l1': 'LB', 'button_r1': 'RB', 'button_select': 'View', 'button_start': 'Menu'}
+SINGLE_SCALE = 4
 
 def regions():
     b = open(os.path.join(GAME, r'GRAPHICS\PSPBUTTONS.ASR'), 'rb').read()
@@ -54,11 +62,38 @@ def trim(img):
     bbox = img.getchannel('A').point(lambda a: 255 if a > 24 else 0).getbbox()
     return img.crop(bbox) if bbox else img
 
+def fit(g, w, h, fill=0.86):
+    g = trim(g)
+    scale = min(w * fill / g.width, h * fill / g.height)
+    g = g.resize((max(1, round(g.width * scale)), max(1, round(g.height * scale))), Image.LANCZOS)
+    tile = Image.new('RGBA', (w, h), (0, 0, 0, 0))
+    tile.alpha_composite(g, ((w - g.width) // 2, (h - g.height) // 2))
+    return tile
+
+def unedited(name):
+    """Only replace a pack file that is still the game's own picture, never a modder's edit."""
+    import numpy as np
+    mine, orig = os.path.join(PACK, name + '.tga'), os.path.join(DUMP, name + '.tga')
+    if not os.path.exists(mine): return True
+    if not os.path.exists(orig): return False
+    a, b = Image.open(mine).convert('RGBA'), Image.open(orig).convert('RGBA')
+    return a.size == b.size and np.array_equal(np.asarray(a), np.asarray(b))
+
+def save_tga(img, path):
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    img.save(path, compression=None)
+    print('wrote', path)
+
 def main():
-    out_paths = sys.argv[1:] or [os.path.join(REPO, r'work\mods-pc\textures', ATLAS_ID + '.png')]
+    # --install writes TGA by name into the installed texture pack (mods\textures),
+    # where names.tsv maps every copy of the texture to it.
+    install = '--install' in sys.argv
+    args = [a for a in sys.argv[1:] if a != '--install']
+    out_paths = args or ([] if install else [os.path.join(REPO, r'work\mods-pc\textures', ATLAS_ID + '.png')])
     reg = regions()
     small, big = xbox_cells()
-    original = Image.open(ORIGINAL).convert('RGBA')
+    original_path = ORIGINAL if os.path.exists(ORIGINAL) else os.path.join(DUMP, 'pspbuttons.tga')
+    original = Image.open(original_path).convert('RGBA')
     glyph = {
         'analog': small[11], 'analog_Small': small[11],
         'big_circle': big['B'], 'big_square': big['X'], 'big_triangle': big['Y'], 'big_x': big['A'],
@@ -85,6 +120,16 @@ def main():
         os.makedirs(os.path.dirname(path), exist_ok=True)
         atlas.save(path)
         print('wrote', path)
+    if install:
+        cell = {'A': small[2], 'B': small[0], 'X': small[1], 'Y': small[3],
+                'LB': small[7], 'RB': small[6], 'View': small[5], 'Menu': small[4]}
+        targets = [('pspbuttons', atlas)]
+        for name, button in SINGLES.items():
+            w, h = Image.open(os.path.join(DUMP, name + '.tga')).size
+            targets.append((name, fit(cell[button], w * SINGLE_SCALE, h * SINGLE_SCALE, 0.94)))
+        for name, img in targets:
+            if unedited(name): save_tga(img, os.path.join(PACK, name + '.tga'))
+            else: print('kept', name + '.tga', '(edited in the pack)')
 
 if __name__ == '__main__':
     main()
