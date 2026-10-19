@@ -39,6 +39,11 @@ bool allow_infantry(std::uint32_t map) {
  if(it!=maps.end()&&!it->second.updated){input008::quarantine_held_actions009();return false;}
  return true;
 }
+bool gameplay_input_active() {
+ if(!infantry_map)return false;
+ auto it=maps.find(infantry_map);
+ return it!=maps.end()&&it->second.updated&&input008::frame_number()-it->second.frame<=3;
+}
 void original_map_operation(psprecomp::Runtime& rt,psprecomp::AllegrexContext& c) {
  if(!original)throw psprecomp::Error("Missing original control-map unit");
  const auto pc=c.pc;

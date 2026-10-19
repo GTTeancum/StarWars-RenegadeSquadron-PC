@@ -14,6 +14,11 @@ Frame now;
 Frame unfiltered009;
 bool initialized=false;
 bool kbm_active=false; // which device spoke last: the keyboard/mouse or the pad
+// Mouse look filter state (Asura_ControlMapping_Axis::m_fValueToReport per axis).
+float mouse_look_x=0.f,mouse_look_y=0.f;
+// Sprint toggle state: latched on a press, cleared by a second press or by the
+// player standing still for a short while (as PC shooters with toggle sprint do).
+bool sprint_on=false,sprint_was_held=false,sprint_moved=false; int sprint_still_frames=0;
 std::uint64_t frame=0,last_polled=~std::uint64_t(0),diagnostic_sequence=0;
 std::array<bool,28> previous{},pending{};
 std::array<bool,28> delivered_interaction{};
@@ -98,7 +103,12 @@ Config config_from_environment() {
  c.invert_y=invert&&*invert=='1';
  c.mouse_sensitivity=env_float("RENEGADE_MOUSE_SENSITIVITY",1,.05f,10);
  const char* minvert=std::getenv("RENEGADE_MOUSE_INVERT_Y");
- c.mouse_invert_y=minvert&&*minvert=='1';return c;
+ c.mouse_invert_y=minvert&&*minvert=='1';
+ c.mouse_smoothing=env_float("RENEGADE_MOUSE_SMOOTHING",c.mouse_smoothing,0,.25f);
+ const char* sprint=std::getenv("RENEGADE_SPRINT_TOGGLE");
+ c.sprint_toggle=!(sprint&&*sprint=='0');
+ const char* centering=std::getenv("RENEGADE_VIEW_CENTERING");
+ c.view_centering=centering&&*centering=='1';return c;
 }
 Frame normalize(const RawPad& r,const Config& c) {
  validate(c);Frame f;f.active=r.connected;f.enabled=r.enabled&&r.connected;
@@ -108,11 +118,28 @@ Frame normalize(const RawPad& r,const Config& c) {
  f.move_x=l[0];f.move_y=-l[1];
  f.look_x=right[0]*c.look_x;f.look_y=-right[1]*c.look_y*(c.invert_y?-1.f:1.f);
  if(r.mouse_look) {
-  // Mouse pixels this frame scaled to a stick deflection; the game applies
-  // its own turn rate to that, so a fast flick saturates at full deflection.
-  constexpr float pixels_for_full=40.f;
-  f.look_x=std::clamp(r.mouse_dx*c.mouse_sensitivity/pixels_for_full,-1.f,1.f);
-  f.look_y=std::clamp(-r.mouse_dy*c.mouse_sensitivity/pixels_for_full,-1.f,1.f)*(c.mouse_invert_y?-1.f:1.f);
+  // Asura PC turns the mouse motion of a frame into a velocity
+  // (Asura_Mouse::OncePerFrameUpdate: delta * frame rate) and feeds it to the
+  // look axis through Asura_ControlMapping_Axis, whose response time eases the
+  // reported value toward the input (value += (input - value) * min(dt/time, 1)),
+  // with the decay using the same time. Samples arrive once per vblank (60 Hz)
+  // while the game reads the look axes on its own frames, so the filter also
+  // carries motion from vblanks the game did not read instead of dropping it.
+  // Calibration: 480 px/s is a full turn stick at sensitivity 1; the game's
+  // own turn rate caps faster motion.
+  constexpr float vblank_seconds=1.f/60.f,pixels_per_second_for_full=480.f;
+  const float vx=r.mouse_dx/vblank_seconds,vy=-r.mouse_dy/vblank_seconds;
+  const float scale=c.mouse_smoothing>0.f?std::min(vblank_seconds/c.mouse_smoothing,1.f):1.f;
+  mouse_look_x+=(vx-mouse_look_x)*scale;
+  mouse_look_y+=(vy-mouse_look_y)*scale;
+  if(std::abs(mouse_look_x)<1.f)mouse_look_x=0.f; // settle exactly at rest (below 1 px/s)
+  if(std::abs(mouse_look_y)<1.f)mouse_look_y=0.f;
+  f.look_x=std::clamp(mouse_look_x*c.mouse_sensitivity/pixels_per_second_for_full,-1.f,1.f);
+  f.look_y=std::clamp(mouse_look_y*c.mouse_sensitivity/pixels_per_second_for_full,-1.f,1.f)*(c.mouse_invert_y?-1.f:1.f);
+  static const bool diagnostics=std::getenv("RENEGADE_MOUSE_LOOK_DIAG")!=nullptr;
+  if(diagnostics&&(r.mouse_dx!=0.f||f.look_x!=0.f))std::cerr<<"[mouse-look] frame="<<frame<<" dx="<<r.mouse_dx<<" look_x="<<f.look_x<<"\n";
+ } else {
+  mouse_look_x=mouse_look_y=0.f; // the pad owns the frame; the mouse starts fresh next time
  }
  f.left_trigger=std::clamp(float(r.lt)/32767.f,0.f,1.f);
  f.right_trigger=std::clamp(float(r.rt)/32767.f,0.f,1.f);
@@ -129,6 +156,16 @@ void accept_sample(std::uint64_t n,const RawPad& raw) {
  if(!initialized)reset();
  frame=n;now=normalize(raw,cfg);unfiltered009=now;
  if(n!=delivered_frame){delivered_interaction.fill(false);delivered_frame=n;}
+ {
+  const bool held=now.enabled&&(now.buttons&bit(LeftStick));
+  if(held&&!sprint_was_held){sprint_on=!sprint_on;sprint_moved=false;sprint_still_frames=0;}
+  sprint_was_held=held;
+  const bool moving=std::hypot(now.move_x,now.move_y)>0.2f;
+  if(moving&&sprint_on)sprint_moved=true;
+  sprint_still_frames=moving?0:sprint_still_frames+1;
+  // Stopping ends a sprint; a tap before moving stays armed for a moment.
+  if((sprint_moved&&sprint_still_frames>20)||sprint_still_frames>90||!now.enabled)sprint_on=false;
+ }
  if(!now.enabled){
   previous.fill(false);pending.fill(false);expires.fill(0);
   delivered_interaction.fill(false);
@@ -181,6 +218,10 @@ void quarantine_held_actions009() {
  if(blocked_rt)now.right_trigger=0;
 }
 Frame current(){return now;}
+bool sprint_active(){
+ if(!now.enabled)return false;
+ return cfg.sprint_toggle?sprint_on:(now.buttons&bit(LeftStick))!=0;
+}
 Config config(){if(!initialized)reset();return cfg;}
 void set_config(const Config& c){validate(c);if(!initialized)reset();cfg=c;}
 float trigger_threshold(){return cfg.trigger_threshold;}

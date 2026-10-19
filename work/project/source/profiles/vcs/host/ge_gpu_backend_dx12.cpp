@@ -5012,13 +5012,15 @@ bool ge_gpu_backend_finish_color_frame(std::uint64_t vblank) noexcept {
             const D3D12_CPU_DESCRIPTOR_HANDLE dsv = dsv_cpu(s, target->dsv_index);
             s.list->OMSetRenderTargets(1u, &rtv, FALSE, &dsv);
 
-            // PSP EDRAM is persistent. Offscreen colors survive across display
-            // intervals and are only initialized once; the displayed surface is
-            // cleared once per interval to retain the stable Stage 44.4 behavior.
+            // PSP EDRAM is persistent: colors survive across display intervals,
+            // the displayed surface included, and are only initialized once. Games
+            // clear with their own clear-mode draws; the load screens draw their
+            // picture once and then only redraw the progress bar on top of it,
+            // so an implicit per-frame clear left them black behind the bar.
             const bool first_ever_use = target->last_render_epoch == 0u;
             const bool first_use_this_frame = target->last_render_epoch != s.frame_epoch;
             if (first_use_this_frame) {
-                if (first_ever_use || address == s.display_framebuffer)
+                if (first_ever_use)
                     s.list->ClearRenderTargetView(rtv, black, 0u, nullptr);
                 const auto flags = first_ever_use
                     ? static_cast<D3D12_CLEAR_FLAGS>(D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL)
@@ -5382,6 +5384,18 @@ bool ge_gpu_backend_presents_directly() noexcept {
     const Dx12GeState &s = state();
     return s.enabled && s.swapchain != nullptr && s.direct_present_ok;
 }
+bool ge_gpu_backend_presented_rectangle(std::uint32_t client_width, std::uint32_t client_height,
+                                        std::int32_t &x, std::int32_t &y,
+                                        std::int32_t &width, std::int32_t &height) noexcept {
+    const Dx12GeState &s = state();
+    if (!(s.enabled && s.swapchain != nullptr && s.direct_present_ok) || !s.target_width || !s.target_height)
+        return false;
+    const PresentationRectangle rect = calculate_presentation_rectangle(
+        client_width, client_height, s.target_width, s.target_height,
+        vcs_configuration().display.aspect_mode, vcs_configuration().display.integer_scale);
+    x = rect.x; y = rect.y; width = rect.width; height = rect.height;
+    return width > 0 && height > 0;
+}
 std::uint32_t ge_gpu_backend_owned_framebuffer() noexcept {
     const Dx12GeState &s = state();
     return s.enabled && s.swapchain != nullptr && s.direct_present_ok
@@ -5447,6 +5461,7 @@ void ge_gpu_backend_set_display_framebuffer(std::uint32_t address) noexcept { st
 bool ge_gpu_backend_finish_color_frame(std::uint64_t) noexcept { return false; }
 bool ge_gpu_backend_copy_game_frame_rgba(std::span<std::byte>) noexcept { return false; }
 bool ge_gpu_backend_presents_directly() noexcept { return false; }
+bool ge_gpu_backend_presented_rectangle(std::uint32_t, std::uint32_t, std::int32_t &, std::int32_t &, std::int32_t &, std::int32_t &) noexcept { return false; }
 std::uint32_t ge_gpu_backend_owned_framebuffer() noexcept { return 0u; }
 std::uint32_t ge_gpu_backend_display_framebuffer() noexcept { return state().display_framebuffer; }
 std::span<const std::byte> ge_gpu_backend_game_frame_rgba() noexcept { return {}; }

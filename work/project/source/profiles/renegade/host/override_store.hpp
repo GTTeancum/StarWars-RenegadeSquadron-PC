@@ -8,6 +8,10 @@ bool textures_enabled() noexcept;
 struct TextureSource {
     std::uint32_t address{}, format{}, buffer_width{}, mip_level{}, clut_address{};
     bool swizzled{};
+    // Raw palette-index pixels of an IDX4/IDX8 texture as stored (swizzled), for
+    // the palette-independent name match; the game recolours unit palettes.
+    const std::uint8_t* indices{};
+    std::size_t index_bytes{};
 };
 std::string texture_id(std::uint32_t width,std::uint32_t height,std::span<const std::uint8_t> rgba);
 // Call on the guest rendering thread. Shared ownership keeps active draws valid.

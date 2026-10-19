@@ -3,6 +3,7 @@
 #include "psprecomp/runtime.hpp"
 #include <array>
 #include <bit>
+#include <cmath>
 #include <cstdlib>
 #include <iostream>
 namespace renegade::input008 {
@@ -24,6 +25,7 @@ float apply_turret(unsigned action,float original) {
  default:return original;
  }
 }
+constexpr float kHoldPitch=0.02f;
 float apply_action(unsigned action,float original) {
  const Frame f=current();
  if(!modern_enabled()||!f.active)return original;
@@ -33,14 +35,22 @@ float apply_action(unsigned action,float original) {
  // still run normally. Supply input, never positions or camera matrices.
  switch(action) {
  case 0:case 2:return f.look_x;
- case 1:case 3:return f.look_y;
+ case 1:case 3: {
+  // View centring off (PC default): the PSP camera re-levels the view once
+  // the pitch input has rested for a moment. While the player gives no pitch
+  // input, report a tiny pitch that alternates in sign every read: it nets to
+  // no movement, but the camera never sees an idle stick and keeps the view
+  // where the player left it. Input only; the camera code runs unchanged.
+  if(!config().view_centering&&std::abs(f.look_y)<1e-4f){static unsigned flip[4]{};return (++flip[action]&1u)?kHoldPitch:-kHoldPitch;}
+  return f.look_y;
+ }
  case 4:return f.move_y;
  case 5:return f.move_x;
  case 8:return f.enabled&&f.right_trigger>trigger_threshold()?1.f:0.f;
  case 9:return held(RightShoulder)?1.f:0.f;
  case 10:return held(X)?1.f:0.f;
  case 16:return f.enabled&&f.left_trigger>trigger_threshold()?1.f:0.f;
- case 21:return held(LeftStick)?1.f:0.f;
+ case 21:return sprint_active()?1.f:0.f; // sprint: toggle (default) or hold
  // Native jetpack trace: original Triangle drives 26 (rise), Circle drives
  // 27 (descend). Keep these held inputs separate from jump/jetpack toggle.
  case 26:return held(Up)?1.f:0.f;

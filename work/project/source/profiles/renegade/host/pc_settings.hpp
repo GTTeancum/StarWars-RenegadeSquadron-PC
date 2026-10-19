@@ -23,6 +23,18 @@ void ensure_registered(psprecomp::Runtime &rt, psprecomp::AllegrexContext &calle
 void poll(psprecomp::Runtime &rt, psprecomp::AllegrexContext &ctx);
 // Settings file written when a value changes (installed layout only).
 void set_settings_file(const std::filesystem::path &ini);
+// True until the game's menu system has started (the title/legal screens, which want Start).
+bool title_screen();
+// Runs one guest routine to completion on the settings module's private guest
+// stack (main thread, vblank). Available once the console variables are
+// registered. Returns the routine's $v0.
+bool guest_ready();
+std::uint32_t call_guest_routine(psprecomp::Runtime &rt, const psprecomp::AllegrexContext &caller, std::uint32_t address,
+                                 std::initializer_list<std::uint32_t> args);
+// Writes a UTF-16 copy of the text into a scratch area of the guest block
+// (console routines take wide names) and returns its address; the area is
+// reused by the next call.
+std::uint32_t scratch_wide_string(psprecomp::Runtime &rt, const char *text);
 }
 
 // Host hooks implemented in psp_services.cpp for the settings module.

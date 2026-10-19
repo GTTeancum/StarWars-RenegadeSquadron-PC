@@ -106,9 +106,12 @@ void apply_installed_settings(const std::filesystem::path& root) {
     set_default("RENEGADE_RIGHT_DEADZONE",get("controller.rightdeadzone","0.2652"));
     set_default("RENEGADE_TRIGGER_THRESHOLD",get("controller.triggerthreshold","0.1176"));
     set_default("RENEGADE_INVERT_Y",flag("controller.inverty",false)?"1":"0");
+    set_default("RENEGADE_VIEW_CENTERING",flag("controller.viewcentering",false)?"1":"0");
+    set_default("RENEGADE_SPRINT_TOGGLE",flag("controller.sprinttoggle",true)?"1":"0");
     // [Mouse] and [Keyboard]: mouse look and the pad buttons the keys stand for.
     set_default("RENEGADE_MOUSE_SENSITIVITY",get("mouse.sensitivity","1.0"));
     set_default("RENEGADE_MOUSE_INVERT_Y",flag("mouse.inverty",false)?"1":"0");
+    set_default("RENEGADE_MOUSE_SMOOTHING",get("mouse.smoothing","0.1"));
     for(const char* button:{"A","B","X","Y","Back","Start","LS","RS","LB","RB","Up","Down","Left","Right","LT","RT","Pause"}) {
         const std::string key=std::string("keyboard.")+lower(button);
         if(const auto it=settings.find(key); it!=settings.end() && !it->second.empty()) set_default((std::string("RENEGADE_KEY_")+button).c_str(),it->second);
@@ -119,7 +122,9 @@ void apply_installed_settings(const std::filesystem::path& root) {
 }
 void report_startup_error(bool installed,const std::string& message) {
 #if defined(_WIN32)
-    if(installed) {
+    // Headless diagnostic runs (no window) report to the log only, never a dialog.
+    const char* window=std::getenv("PSPRECOMP_WINDOW");
+    if(installed && !(window && std::string(window)=="0")) {
         const std::string text="The game could not start.\n\n"+message+
             "\n\nThe game data must be the extracted US disc (ULUS10292), with its PSP_GAME folder placed in the \"data\" folder next to RenegadeSquadron.exe.";
         MessageBoxA(nullptr,text.c_str(),"Star Wars Battlefront: Renegade Squadron",MB_OK|MB_ICONERROR);

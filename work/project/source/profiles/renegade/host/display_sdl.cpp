@@ -1,9 +1,13 @@
 #include "modern_input008.hpp"
+#include "control_context009.hpp"
+#include "pc_settings.hpp"
 #include "display_window.hpp"
 #include "ge_renderer.hpp"
 #include "display_ui.hpp"
 #include "message_dialog.hpp"
+#include "menu_cursor.hpp"
 #include "game_font.hpp"
+#include "key_prompts.hpp"
 #include <cctype>
 #include "psprecomp/common.hpp"
 #include <SDL2/SDL.h>
@@ -44,7 +48,26 @@ std::array<bool,SDL_NUM_SCANCODES> keys{};
 // Mouse state for keyboard/mouse play: motion accumulated between samples,
 // held buttons, wheel steps turned into one-sample presses.
 int mouse_dx=0,mouse_dy=0; std::array<bool,6> mouse_buttons{}; int wheel_up=0,wheel_down=0; bool mouse_moved=false;
+// A wheel notch holds its binding for a few vblanks so the game's own input
+// polling (which runs on game frames) always sees it.
+constexpr int kWheelHold=6;
 bool relative_mouse=false;
+bool injected_input=false; // diagnostics drive the keyboard/mouse (works headless, no window)
+// Menu cursor (see menu_cursor.hpp): the menu module says when a page takes
+// cursor input and whether the pointer is over a selectable widget. Without a
+// window the cursor is the injected position (diagnostics), in PSP coordinates.
+bool menu_cursor_page=false,menu_cursor_hit=false; std::uint32_t menu_cursor_click=0x4000u,menu_scripted_buttons=0u;
+float injected_cursor_x=240.f,injected_cursor_y=136.f; bool cursor_injected=false;
+int menu_wheel=0; // wheel notches for the menu module (it scrolls lists and steps menus with them)
+std::array<bool,6> injected_buttons{};
+// Rectangle of the game picture in window coordinates (direct GPU presentation
+// or the SDL renderer's fit below the toolbar).
+bool game_rectangle(int& x,int& y,int& w,int& h) {
+ if(!window)return false;
+ int ww=0,wh=0;SDL_GetWindowSize(window,&ww,&wh);if(ww<=0||wh<=0)return false;
+ if(direct_present){std::int32_t rx,ry,rw,rh;if(!ge_gpu_backend_presented_rectangle(unsigned(ww),unsigned(wh),rx,ry,rw,rh))return false;x=rx;y=ry;w=rw;h=rh;return true;}
+ const auto r=ui::fit(ww,wh,int(tw?tw:480u),int(th?th:272u),ui::toolbar_height);if(r.w<=0||r.h<=0)return false;x=r.x;y=r.y;w=r.w;h=r.h;return true;
+}
 // Pad-button bindings for the keyboard/mouse (RENEGADE_KEY_<button>, from the
 // settings file [Keyboard]). A binding names an SDL key ("Space", "Left Shift",
 // "E"), a mouse button (Mouse1..Mouse5) or the wheel (WheelUp, WheelDown).
@@ -71,6 +94,17 @@ bool binding_held(const Binding& b) {
  return false;
 }
 void set_relative_mouse(bool on){if(on==relative_mouse||!window)return;relative_mouse=on;SDL_SetRelativeMouseMode(on?SDL_TRUE:SDL_FALSE);}
+// Arrow cursor in the front end's colours (white with a dark edge), drawn with
+// filled spans so the same shape works on the SDL renderer and the RGBA overlay.
+// 12x19 cells at one overlay pixel each: about a standard pointer's size on screen
+// (24x38 at 1080p), not scaled with the game's pixels.
+template<class Fill> void draw_cursor_arrow(int x,int y,int scale,Fill&& fill) {
+ // 12x19 cell arrow (classic pointer); 0 = clear, 1 = edge, 2 = fill
+ static const char* rows[19]={
+  "1...........","11..........","121.........","1221........","12221.......","122221......","1222221.....","12222221....","122222221...","1222222221..","12222222221.","122222222221","1222222111111","122122221....","12211222.1...","121.1222.1...","11...12221...","1....12221...",".....1111...."};
+ for(int r=0;r<19;++r)for(int c=0;c<12;++c){const char ch=rows[r][c];if(ch=='.')continue;
+  fill(x+c*scale,y+r*scale,scale,scale,ch=='1'?SDL_Color{10,16,24,255}:SDL_Color{240,244,248,255});}
+}
 std::string capture_request;
 MessageDialogView message_view;
 // Window size requested by settings (any WxH, not only the toolbar presets).
@@ -272,9 +306,12 @@ bool draw_message_dialog_rgba(std::vector<std::byte>& rgba,unsigned ww,unsigned 
   centred(canvas,cx,py+panel_h-28,"Esc or B to cancel",Face::Small,kDim);
   return true;
  }
- if(!message_view.visible)return false;
+ const MenuCursorState cursor=display_window_menu_cursor();
+ const bool draw_cursor=menu_cursor_page&&cursor.available&&!message_view.visible;
+ if(!message_view.visible&&!draw_cursor)return false;
  rgba.assign(std::size_t(ww)*wh*4,std::byte{0});
  Canvas canvas{ww,wh,rgba};
+ if(draw_cursor){draw_cursor_arrow(int(cursor.x*float(ww)/480.f),int(cursor.y*float(wh)/272.f),std::max(1,int(wh)/544),[&](int x,int y,int w,int h,SDL_Color c){canvas.fill(x,y,w,h,c);});return true;}
  if(renegade::game_font::loaded()) {
   // Like the Load Successful page: message lines centred, Yes/No or Continue bars.
   std::vector<std::string> lines;
@@ -358,6 +395,8 @@ void render(bool present=true) {
   int y=ui::toolbar_height+14;for(const auto& line:lines){text(14,y,line,{229,236,244,255},1);y+=15;}
  }
  draw_message_dialog(ww,wh);
+ if(menu_cursor_page&&focused&&!menu_open&&!relative_mouse){int mx=0,my=0;SDL_GetMouseState(&mx,&my);int gx,gy,gw,gh;
+  if(game_rectangle(gx,gy,gw,gh)&&mx>=gx&&my>=gy&&mx<gx+gw&&my<gy+gh)draw_cursor_arrow(mx,my,std::max(1,gh/544),[&](int x,int y,int w,int h,SDL_Color c){fill({x,y,w,h},c);});}
  if(text_entry.active) {
   const int scale=ww>=800?2:1;
   draw_text_entry(ww,wh,ui::toolbar_height,scale,
@@ -410,7 +449,7 @@ void poll(){if(!window)return;bool dirty=false;SDL_Event e;while(SDL_PollEvent(&
  if(e.type==SDL_MOUSEMOTION && e.motion.windowID==SDL_GetWindowID(window) && menu_open){const int row=ui::selected_row(e.motion.x,e.motion.y);if(row>=0){hover=row;dirty=true;}}
  if(e.type==SDL_MOUSEMOTION && e.motion.windowID==SDL_GetWindowID(window) && focused && !menu_open){mouse_dx+=e.motion.xrel;mouse_dy+=e.motion.yrel;if(e.motion.xrel||e.motion.yrel)mouse_moved=true;}
  if((e.type==SDL_MOUSEBUTTONDOWN||e.type==SDL_MOUSEBUTTONUP) && e.button.windowID==SDL_GetWindowID(window) && e.button.button>=1 && e.button.button<=5 && !menu_open)mouse_buttons[e.button.button]=e.type==SDL_MOUSEBUTTONDOWN;
- if(e.type==SDL_MOUSEWHEEL && focused){if(e.wheel.y>0)wheel_up+=e.wheel.y;else if(e.wheel.y<0)wheel_down-=e.wheel.y;}
+ if(e.type==SDL_MOUSEWHEEL && focused){if(e.wheel.y>0)wheel_up=kWheelHold;else if(e.wheel.y<0)wheel_down=kWheelHold;menu_wheel+=e.wheel.y;}
  if((e.type==SDL_KEYDOWN || e.type==SDL_KEYUP) && e.key.windowID==SDL_GetWindowID(window)) {
   const bool down=e.type==SDL_KEYDOWN;const auto sc=e.key.keysym.scancode;
   if(!focused)continue;
@@ -445,16 +484,33 @@ void poll(){if(!window)return;bool dirty=false;SDL_Event e;while(SDL_PollEvent(&
  }
  if(dirty)render();
 }
-HostInputState sample(){poll();HostInputState s;if(!window||!focused||menu_open||closed||text_entry.active)return s;
+bool mouse_down(int b){return (b>0&&b<6)&&(mouse_buttons[b]||injected_buttons[b]);}
+HostInputState sample(){poll();HostInputState s;if(((!window||!focused)&&!injected_input)||menu_open||closed||text_entry.active)return s;
  load_bindings();
- // PSP buttons for the menus and the original layout: arrows and Enter/Space
- // for Cross, Backspace/X for Circle, plus the bound pause key for Start.
- const std::pair<SDL_Scancode,unsigned> mapping[]={
- {SDL_SCANCODE_TAB,1},{SDL_SCANCODE_RETURN,0x4000},{SDL_SCANCODE_KP_ENTER,0x4000},{SDL_SCANCODE_UP,0x10},{SDL_SCANCODE_RIGHT,0x20},{SDL_SCANCODE_DOWN,0x40},{SDL_SCANCODE_LEFT,0x80},
- {SDL_SCANCODE_Q,0x100},{SDL_SCANCODE_R,0x200},{SDL_SCANCODE_E,0x1000},{SDL_SCANCODE_C,0x2000},{SDL_SCANCODE_SPACE,0x4000},{SDL_SCANCODE_Z,0x4000},{SDL_SCANCODE_X,0x2000},{SDL_SCANCODE_BACKSPACE,0x2000},{SDL_SCANCODE_F,0x8000}};
- for(auto [k,b]:mapping)if(keys[k])s.buttons|=b;
- if(binding_held(bindings[17]))s.buttons|=8; // Start
- if(mouse_buttons[1])s.buttons|=0x4000; // click = Cross in menus
+ // PSP buttons for the menus and HUD prompts. The face buttons, shoulders,
+ // Back and d-pad come from the same [Keyboard] bindings as play, so a prompt
+ // means the same key everywhere (the prompts show those keys while the
+ // keyboard is in use): A Cross, B Circle, X Square, Y Triangle, LB L, RB R,
+ // Back Select. Enter, Backspace and the arrow keys always work in menus.
+ const std::pair<SDL_Scancode,unsigned> fixed_keys[]={{SDL_SCANCODE_RETURN,0x4000},{SDL_SCANCODE_KP_ENTER,0x4000},{SDL_SCANCODE_BACKSPACE,0x2000},
+ {SDL_SCANCODE_UP,0x10},{SDL_SCANCODE_RIGHT,0x20},{SDL_SCANCODE_DOWN,0x40},{SDL_SCANCODE_LEFT,0x80}};
+ for(auto [k,b]:fixed_keys)if(keys[k])s.buttons|=b;
+ const std::pair<int,unsigned> bound[]={{0,0x4000},{1,0x2000},{2,0x8000},{3,0x1000},{4,1},{9,0x100},{10,0x200},{11,0x10},{12,0x40},{13,0x80},{14,0x20}};
+ for(auto [i,b]:bound){
+  // On a cursor page the mouse buttons and wheel belong to the cursor.
+  if(menu_cursor_page&&(bindings[i].mouse||bindings[i].wheel))continue;
+  if(binding_held(bindings[i]))s.buttons|=b;
+ }
+ // The pause key is Start during play and Back (Circle) in any menu, as on PC.
+ // Enter is Select (Cross); on the title screen ("Press START") it is Start too.
+ if(binding_held(bindings[17]))s.buttons|=renegade::context009::gameplay_input_active()?8u:0x2000u;
+ if((keys[SDL_SCANCODE_RETURN]||keys[SDL_SCANCODE_KP_ENTER]||mouse_down(1))&&renegade::pc_settings::title_screen())s.buttons|=8;
+ // Cursor menus (Asura's CLICK, which the widgets take as accept): the left
+ // button accepts only over a selectable widget, the right button is Back, the
+ // wheel steps up/down. Without a cursor page the left button stays accept.
+ if(mouse_down(1))s.buttons|=!menu_cursor_page?0x4000u:(menu_cursor_hit?menu_cursor_click:0u);
+ s.buttons|=menu_scripted_buttons;
+ if(menu_cursor_page&&mouse_down(3))s.buttons|=0x2000;
  s.analog_x=keys[SDL_SCANCODE_A]==keys[SDL_SCANCODE_D]?128:keys[SDL_SCANCODE_A]?0:255;
  s.analog_y=keys[SDL_SCANCODE_W]==keys[SDL_SCANCODE_S]?128:keys[SDL_SCANCODE_W]?0:255;
  if(pad){const std::pair<SDL_GameControllerButton,unsigned> buttons[]={{SDL_CONTROLLER_BUTTON_BACK,1},{SDL_CONTROLLER_BUTTON_START,8},{SDL_CONTROLLER_BUTTON_DPAD_UP,0x10},{SDL_CONTROLLER_BUTTON_DPAD_RIGHT,0x20},{SDL_CONTROLLER_BUTTON_DPAD_DOWN,0x40},{SDL_CONTROLLER_BUTTON_DPAD_LEFT,0x80},{SDL_CONTROLLER_BUTTON_LEFTSHOULDER,0x100},{SDL_CONTROLLER_BUTTON_RIGHTSHOULDER,0x200},{SDL_CONTROLLER_BUTTON_Y,0x1000},{SDL_CONTROLLER_BUTTON_B,0x2000},{SDL_CONTROLLER_BUTTON_A,0x4000},{SDL_CONTROLLER_BUTTON_X,0x8000}};for(auto [b,v]:buttons)if(SDL_GameControllerGetButton(pad,b))s.buttons|=v;
@@ -514,6 +570,9 @@ bool display_window_dialog_overlay(std::vector<std::byte>& rgba,unsigned& width,
  static const bool headless_test=on("RENEGADE_DIALOG_OVERLAY_TEST");
  if(!direct_present&&!headless_test)return false;
  width=960;height=544;
+ // "cursor": only the menu cursor (headless check of the cursor drawing), no sample dialogs.
+ const bool cursor_only=headless_test&&std::string(std::getenv("RENEGADE_DIALOG_OVERLAY_TEST"))=="cursor";
+ if(cursor_only)return draw_message_dialog_rgba(rgba,width,height);
  if(headless_test&&!text_entry.active&&std::string(std::getenv("RENEGADE_DIALOG_OVERLAY_TEST"))=="text") {
   // Test-only sample of the PC text entry box.
   text_entry.active=true;text_entry.title="NEW PROFILE NAME";text_entry.text="Col Serra";
@@ -619,12 +678,53 @@ void display_window_inject_text(const std::string& typed){
   if(ch>=32&&ch<127&&text_entry.text.size()<text_entry.limit)text_entry.text.push_back(char(ch));
  }
 }
+void display_window_inject_key(const std::string& name,bool down){
+ const SDL_Scancode sc=SDL_GetScancodeFromName(name.c_str());
+ if(sc==SDL_SCANCODE_UNKNOWN){std::cerr<<"[display-sdl] inject: unknown key \""<<name<<"\"\n";return;}
+ keys[sc]=down;injected_input=true;
+}
+void display_window_inject_mouse(int dx,int dy){mouse_dx+=dx;mouse_dy+=dy;if(dx||dy)mouse_moved=true;injected_input=true;
+ // Without a window the injected motion also moves the menu cursor (half a PSP pixel per count).
+ if(!window){injected_cursor_x=std::clamp(injected_cursor_x+dx*0.5f,0.f,480.f);injected_cursor_y=std::clamp(injected_cursor_y+dy*0.5f,0.f,272.f);cursor_injected=true;}}
+void display_window_inject_cursor(float x,float y){injected_cursor_x=std::clamp(x,0.f,480.f);injected_cursor_y=std::clamp(y,0.f,272.f);cursor_injected=true;injected_input=true;mouse_moved=true;}
+void display_window_inject_wheel(int notches){menu_wheel+=notches;if(notches>0)wheel_up=kWheelHold;else if(notches<0)wheel_down=kWheelHold;injected_input=true;}
+void display_window_inject_mouse_button(int button,bool down){if(button>0&&button<6)injected_buttons[button]=down;injected_input=true;}
+MenuCursorState display_window_menu_cursor(){
+ poll();MenuCursorState c;
+ c.left=mouse_down(1);c.middle=mouse_down(2);c.right=mouse_down(3);c.wheel=menu_wheel;menu_wheel=0;
+ if(cursor_injected){c.available=true;c.x=injected_cursor_x;c.y=injected_cursor_y;return c;}
+ if(!window||!focused||menu_open||relative_mouse)return c;
+ int mx=0,my=0;SDL_GetMouseState(&mx,&my);int gx,gy,gw,gh;if(!game_rectangle(gx,gy,gw,gh))return c;
+ if(mx<gx||my<gy||mx>=gx+gw||my>=gy+gh)return c;
+ c.available=true;c.x=float(mx-gx)*480.f/float(gw);c.y=float(my-gy)*272.f/float(gh);return c;
+}
+void display_window_set_menu_buttons(std::uint32_t buttons){menu_scripted_buttons=buttons;}
+void display_window_set_menu_cursor(bool page_active,bool over_widget,std::uint32_t click_buttons){
+ if(page_active!=menu_cursor_page&&window&&!direct_present)render();
+ menu_cursor_page=page_active;menu_cursor_hit=over_widget;menu_cursor_click=click_buttons;
+ // The window draws its own themed cursor on a page; the OS pointer stays hidden over the game.
+ if(window)SDL_ShowCursor(menu_cursor_page||relative_mouse?SDL_DISABLE:SDL_ENABLE);
+}
+std::string display_window_key_label(const char* binding){
+ load_bindings();
+ int index=-1;for(int i=0;i<18;++i)if(std::strcmp(binding_names[i],binding)==0){index=i;break;}
+ if(index<0)return {};
+ const std::string name=std::string("RENEGADE_KEY_")+binding_names[index];
+ const char* v=std::getenv(name.c_str());
+ std::string key=v&&*v?v:binding_defaults[index];
+ static const std::pair<const char*,const char*> short_names[]={{"Left Shift","SHIFT"},{"Right Shift","SHIFT"},{"Left Ctrl","CTRL"},{"Right Ctrl","CTRL"},
+  {"Left Alt","ALT"},{"Right Alt","ALT"},{"Space","SPACE"},{"Escape","ESC"},{"Return","ENTER"},{"Backspace","BKSP"},{"Tab","TAB"},
+  {"Mouse1","LMB"},{"Mouse2","RMB"},{"Mouse3","MMB"},{"Mouse4","M4"},{"Mouse5","M5"},{"WheelUp","WHL UP"},{"WheelDown","WHL DN"}};
+ for(auto [from,to]:short_names)if(key==from)return to;
+ for(char& c:key)c=char(std::toupper(static_cast<unsigned char>(c)));
+ return key;
+}
 void display_window_set_fonts(const std::filesystem::path& fonts_asr){
  if(!renegade::game_font::load(fonts_asr))std::cerr<<"[display-sdl] game fonts unavailable; overlays use the built-in lettering\n";
 }
 bool display_window_close_requested(){poll();
  // Hide and capture the cursor while the keyboard/mouse drives play.
- set_relative_mouse(window&&focused&&!menu_open&&!text_entry.active&&!message_view.visible&&renegade::input008::keyboard_mouse_active());
+ set_relative_mouse(window&&focused&&!menu_open&&!text_entry.active&&!message_view.visible&&!menu_cursor_page&&renegade::input008::keyboard_mouse_active());
  return closed;}
 void display_window_request_close(){closed=true;}
 void display_window_apply_video(int width,int height,bool fullscreen){apply_video_mode(width,height,fullscreen);}
@@ -719,15 +819,17 @@ RawPad live_keyboard_mouse() {
  using namespace vcs;
  poll();load_bindings();RawPad r;
  r.connected=true;
- r.enabled=window&&focused&&!menu_open&&!closed&&!message_view.visible&&!text_entry.active;
+ r.enabled=((window&&focused)||injected_input)&&!menu_open&&!closed&&!message_view.visible&&!text_entry.active;
  if(!r.enabled){mouse_dx=mouse_dy=0;wheel_up=wheel_down=0;mouse_moved=false;return r;}
  r.lx=keys[SDL_SCANCODE_A]==keys[SDL_SCANCODE_D]?0:keys[SDL_SCANCODE_A]?-32767:32767;
  r.ly=keys[SDL_SCANCODE_W]==keys[SDL_SCANCODE_S]?0:keys[SDL_SCANCODE_W]?-32767:32767;
  for(unsigned i=0;i<15;++i)if(binding_held(bindings[i]))r.buttons|=1u<<i;
  r.lt=binding_held(bindings[15])?32767:0; r.rt=binding_held(bindings[16])?32767:0;
  r.mouse_look=true; r.mouse_dx=float(mouse_dx); r.mouse_dy=float(mouse_dy);
- r.activity=mouse_moved||r.lx||r.ly||r.buttons||r.lt||r.rt||mouse_buttons[1]||mouse_buttons[2]||wheel_up||wheel_down;
- mouse_dx=mouse_dy=0;mouse_moved=false; wheel_up=wheel_down=0; // wheel steps count for one sample
+ // any key counts as keyboard use (menus are driven with the arrow keys and Enter, which are not pad bindings)
+ r.activity=mouse_moved||r.lx||r.ly||r.buttons||r.lt||r.rt||mouse_down(1)||mouse_down(2)||mouse_down(3)||wheel_up||wheel_down
+  ||std::any_of(keys.begin(),keys.end(),[](bool k){return k;});
+ mouse_dx=mouse_dy=0;mouse_moved=false; if(wheel_up>0)--wheel_up; if(wheel_down>0)--wheel_down; // a notch lasts kWheelHold samples
  return r;
 }
 RawPad live_gamepad() {

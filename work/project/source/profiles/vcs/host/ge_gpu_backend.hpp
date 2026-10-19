@@ -624,6 +624,13 @@ void ge_gpu_backend_set_display_framebuffer(std::uint32_t address) noexcept;
 // native GPU swapchain. The caller must not present the window in that case.
 [[nodiscard]] bool ge_gpu_backend_presents_directly() noexcept;
 
+// Rectangle (window client coordinates) the directly presented frame occupies
+// for a client area of the given size: the same aspect/integer-scale fit the
+// presenter uses. False when the backend is not presenting directly.
+[[nodiscard]] bool ge_gpu_backend_presented_rectangle(std::uint32_t client_width, std::uint32_t client_height,
+                                                      std::int32_t &x, std::int32_t &y,
+                                                      std::int32_t &width, std::int32_t &height) noexcept;
+
 // Framebuffer address (masked to VRAM) whose image the GPU rendered and put on
 // screen last, or 0 when the GPU owns nothing. Rasterizing that surface again
 // on the CPU produces pixels no one reads.

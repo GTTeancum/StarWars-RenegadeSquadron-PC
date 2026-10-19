@@ -1,5 +1,6 @@
 #include "modern_input008.hpp"
 #include "pc_settings.hpp"
+#include "menu_cursor.hpp"
 #include "guest_savedata_preflight006.hpp"
 #include "diagnostic_control.hpp"
 #include "movie_gpu_present.hpp"
@@ -7328,6 +7329,7 @@ void install_profile(psprecomp::Runtime &runtime, std::uint32_t user_arena_start
         capture_frame_if_requested(rt.memory(), displayed);
         renegade::input008::frame_tick(display_vblank_index);
         renegade::pc_settings::poll(rt, ctx);
+        renegade::menu_cursor::poll(rt, ctx);
         apply_frame_rate_cap(rt.memory());
         apply_diagnostic_memory_actions(rt.memory());
         dump_ram_if_requested(rt.memory());

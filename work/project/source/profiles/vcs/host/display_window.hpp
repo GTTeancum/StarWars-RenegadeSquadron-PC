@@ -90,6 +90,12 @@ void display_window_request_close();
 void display_window_set_fonts(const std::filesystem::path& fonts_asr);
 // Diagnostics (controller step channel): types into the text-entry box.
 void display_window_inject_text(const std::string& typed);
+// Diagnostics: a held keyboard key (SDL key name) and relative mouse motion, also without a window.
+void display_window_inject_key(const std::string& name,bool down);
+void display_window_inject_mouse(int dx,int dy);
+void display_window_inject_cursor(float x,float y); // PSP screen coordinates (480x272)
+void display_window_inject_mouse_button(int button,bool down);
+void display_window_inject_wheel(int notches); // positive = up
 // Settings menu: window size (0x0 = desktop size) and fullscreen.
 void display_window_apply_video(int width,int height,bool fullscreen);
 

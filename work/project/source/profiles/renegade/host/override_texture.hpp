@@ -14,6 +14,9 @@ struct Texture {
     bool use_original_alpha{};
     // Optional tangent-space normal map (textures/<id>_n.*), RGB = XYZ * 0.5 + 0.5.
     std::shared_ptr<const Texture> normal_map;
+    // Keyboard/mouse prompt version of a button texture (key_prompts.hpp); the
+    // renderer keeps it apart from the pad version in its caches.
+    bool keyboard_variant{};
 };
 // Failure leaves output unchanged so callers can retain the original texture.
 bool load_texture(const std::filesystem::path&, Texture&, std::string& error);

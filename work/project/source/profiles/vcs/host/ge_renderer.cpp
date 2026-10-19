@@ -1,6 +1,7 @@
 #if defined(RENEGADE_MATERIAL_AUDIT009)
 #include "../../renegade/host/material_audit009.hpp"
 #include "../../renegade/host/override_store.hpp"
+#include "../../renegade/host/key_prompts.hpp"
 #include "../../renegade/host/override_source_cache.hpp"
 #include "../../renegade/host/override_model.hpp"
 #include "../../renegade/host/override_world.hpp"
@@ -2965,8 +2966,14 @@ void bind_override_texture(const psprecomp::GuestMemory& memory,TextureSetup& t)
                 auto decode=[&]() -> std::shared_ptr<const renegade::overrides::Texture> {
                     std::vector<std::byte> pixels(static_cast<std::size_t>(t.width)*t.height*4);
                     if(!decode_texture_rgba_into(memory,t,pixels))return {};
-                    const renegade::overrides::TextureSource source{t.base,t.format,t.buffer_width,
+                    renegade::overrides::TextureSource source{t.base,t.format,t.buffer_width,
                         t.selected_level,t.clut_base,t.swizzled};
+                    if(t.format==4||t.format==5){
+                        const std::size_t row=t.format==4?(t.buffer_width+1u)/2u:t.buffer_width;
+                        source.index_bytes=row*t.height;
+                        source.indices=memory.raw_pointer(t.base,source.index_bytes);
+                        if(!source.indices)source.index_bytes=0;
+                    }
                     return renegade::overrides::find_texture(t.width,t.height,
                         {reinterpret_cast<const std::uint8_t*>(pixels.data()),pixels.size()},&source);
                 };
@@ -2990,7 +2997,9 @@ void bind_override_texture(const psprecomp::GuestMemory& memory,TextureSetup& t)
                         ~TracedCache(){if(std::getenv("RENEGADE_TRACE_TEXTURE_CACHE"))
                             std::cerr<<"[overrides] texture source cache hits="<<hits<<" misses="<<misses<<"\n";}
                     };
-                    static TracedCache cache;
+                    // Button prompts differ by device (key_prompts.hpp): one cache each.
+                    static TracedCache pad_cache, keyboard_cache;
+                    TracedCache& cache=renegade::key_prompts::active()?keyboard_cache:pad_cache;
                     const renegade::overrides::SourceTextureCache::Key key{t.base,t.width,t.height,t.buffer_width,
                         t.format,unsigned(t.swizzled),t.clut_base,t.clut_format,t.clut_shift,t.clut_mask,
                         t.clut_start,t.clut_wrap_mask,t.clut_entry_bytes,t.selected_level};
@@ -4820,6 +4829,10 @@ bool render_ge_primitive(psprecomp::GuestMemory &memory,
             // Keep replacement images distinct from ordinary/shared PSP uploads.
             gpu_draw.texture_cache_key_hint^=0xd28923e492f785b1ull;
             gpu_draw.texture_image_key_hint^=0xd28923e492f785b1ull;
+            if(gpu_override_source.replacement->keyboard_variant){
+                gpu_draw.texture_cache_key_hint^=0x6b65796361707321ull;
+                gpu_draw.texture_image_key_hint^=0x6b65796361707321ull;
+            }
             if(!gpu_draw.texture_cache_key_hint)gpu_draw.texture_cache_key_hint=1;
             if(!gpu_draw.texture_image_key_hint)gpu_draw.texture_image_key_hint=1;
         }

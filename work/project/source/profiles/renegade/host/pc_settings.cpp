@@ -40,9 +40,9 @@ constexpr std::array<Resolution, 8> kResolutions{{
 
 enum Slot : std::uint32_t {
     kResolution, kFullscreen, kFrameRateCap, kPerPixelLighting, kShadows, kBloom, kSmoothFog,
-    kLookX, kLookY, kInvertY, kLeftDeadzone, kRightDeadzone, kControlScheme, kMouseSensitivity, kMouseInvertY, kSlotCount
+    kLookX, kLookY, kInvertY, kLeftDeadzone, kRightDeadzone, kControlScheme, kMouseSensitivity, kMouseInvertY, kViewCentering, kSprintToggle, kSlotCount
 };
-enum Command : std::uint32_t { kQuitGame, kResolutionNext, kResolutionPrev, kControlSchemeNext, kCommandCount };
+enum Command : std::uint32_t { kQuitGame, kResolutionNext, kResolutionPrev, kControlSchemeNext, kSprintModeNext, kCommandCount };
 
 struct Guest {
     std::uint32_t block{};       // partition block (values, strings, stub addresses, stack)
@@ -59,12 +59,14 @@ constexpr std::uint32_t kBlockSize = 0x10000u;
 constexpr std::uint32_t kValues = 0x0u;        // 4 bytes per slot
 constexpr std::uint32_t kStrings = 0x100u;     // UTF-16 names/descriptions
 constexpr std::uint32_t kStubs = 0x1000u;      // host functions registered at these addresses
+constexpr std::uint32_t kScratch = 0x2000u;    // 0x200 bytes: temporary wide strings for guest calls
 constexpr std::uint32_t kStubStride = 0x10u;
 
 // Host-side copy of the values (what has been applied) and pending commands.
 std::array<std::uint32_t, kSlotCount> applied{};
 std::array<bool, kCommandCount> command_pending{};
 bool sentinel_hit = false;
+std::uint32_t last_return = 0u;  // $v0 of the last guest routine run by call_guest
 std::filesystem::path settings_file;
 int save_countdown = 0;
 
@@ -129,7 +131,7 @@ bool call_guest(psprecomp::Runtime &rt, const psprecomp::AllegrexContext &caller
                       << psprecomp::hex32(address) << "\n";
             return false;
         }
-        if (sentinel_hit) return ctx.gpr[2] != 0u;  // the console routines return true on success
+        if (sentinel_hit) { last_return = ctx.gpr[2]; return ctx.gpr[2] != 0u; }  // the console routines return true on success
         if (rt.stopped()) return false;
     }
     std::cerr << "[pc-settings] guest call " << psprecomp::hex32(address) << " did not return\n";
@@ -149,6 +151,9 @@ void command_function(psprecomp::Runtime &rt, psprecomp::AllegrexContext &ctx) {
         rt.memory().store32(address, static_cast<std::uint32_t>(index));
     } else if constexpr (C == kControlSchemeNext) {
         const std::uint32_t address = slot_address(kControlScheme);
+        rt.memory().store32(address, rt.memory().load32(address) ? 0u : 1u);
+    } else if constexpr (C == kSprintModeNext) {
+        const std::uint32_t address = slot_address(kSprintToggle);
         rt.memory().store32(address, rt.memory().load32(address) ? 0u : 1u);
     } else {
         command_pending[C] = true;
@@ -209,7 +214,9 @@ void save_settings(psprecomp::Runtime &rt) {
                         {"LookSensitivityY", number(slot_float(rt, kLookY))},
                         {"InvertY", on_off(slot_bool(rt, kInvertY))},
                         {"LeftDeadzone", number(slot_float(rt, kLeftDeadzone))},
-                        {"RightDeadzone", number(slot_float(rt, kRightDeadzone))}}},
+                        {"RightDeadzone", number(slot_float(rt, kRightDeadzone))},
+                        {"ViewCentering", on_off(slot_bool(rt, kViewCentering))},
+                        {"SprintToggle", on_off(slot_int(rt, kSprintToggle) != 0)}}},
         {"Mouse", {{"Sensitivity", number(slot_float(rt, kMouseSensitivity))},
                    {"InvertY", on_off(slot_bool(rt, kMouseInvertY))}}}};
     std::vector<std::string> lines;
@@ -227,12 +234,13 @@ void save_settings(psprecomp::Runtime &rt) {
         return s.substr(first, s.find_last_not_of(" \t") - first + 1u);
     };
     for (const auto &[section, keys] : sections) {
+        // The last section of a name wins when the file is read, so write there.
         std::size_t begin = lines.size(), end = lines.size();
         for (std::size_t i = 0; i < lines.size(); ++i) {
             const std::string t = trim(lines[i]);
             if (t.size() >= 2u && t.front() == '[' && t.back() == ']') {
-                if (begin != lines.size()) { end = i; break; }
-                if (lower(t.substr(1, t.size() - 2)) == lower(section)) begin = i + 1u;
+                if (lower(t.substr(1, t.size() - 2)) == lower(section)) { begin = i + 1u; end = lines.size(); }
+                else if (begin != lines.size() && end == lines.size()) end = i;
             }
         }
         if (begin == lines.size()) {
@@ -280,11 +288,16 @@ void apply_input(psprecomp::Runtime &rt) {
     c.right_deadzone = std::clamp(slot_float(rt, kRightDeadzone), 0.0f, 0.9f);
     c.mouse_sensitivity = std::clamp(slot_float(rt, kMouseSensitivity), 0.05f, 10.0f);
     c.mouse_invert_y = slot_bool(rt, kMouseInvertY);
+    c.view_centering = slot_bool(rt, kViewCentering);
+    c.sprint_toggle = slot_int(rt, kSprintToggle) != 0;
     input008::set_config(c);
 }
 }  // namespace
 
 void set_settings_file(const std::filesystem::path &ini) { settings_file = ini; }
+
+// The console (and with it the menu system) comes up after the title screens.
+bool title_screen() { return !g.registered; }
 
 void ensure_registered(psprecomp::Runtime &, psprecomp::AllegrexContext &, const std::string &psp_path) {
     if (g.registered || g.failed || g.trigger) return;
@@ -327,17 +340,39 @@ void register_now(psprecomp::Runtime &rt, psprecomp::AllegrexContext &caller) {
     ok &= add_float(rt, caller, "PC.LeftDeadzone", kLeftDeadzone, input.left_deadzone, 0.0f, 0.5f);
     ok &= add_float(rt, caller, "PC.RightDeadzone", kRightDeadzone, input.right_deadzone, 0.0f, 0.5f);
     ok &= add_int(rt, caller, "PC.ControlScheme", kControlScheme, scheme, 0, 1);
-    ok &= add_float(rt, caller, "PC.MouseSensitivity", kMouseSensitivity, input.mouse_sensitivity, 0.1f, 3.0f);
+    ok &= add_float(rt, caller, "PC.MouseSensitivity", kMouseSensitivity, input.mouse_sensitivity, 0.1f, 5.0f);
     ok &= add_bool(rt, caller, "PC.MouseInvertY", kMouseInvertY, input.mouse_invert_y);
+    ok &= add_bool(rt, caller, "PC.ViewCentering", kViewCentering, input.view_centering);
+    ok &= add_int(rt, caller, "PC.SprintToggle", kSprintToggle, input.sprint_toggle ? 1 : 0, 0, 1);
     ok &= add_command(rt, caller, "PC_QuitGame", kQuitGame, command_function<kQuitGame>);
     ok &= add_command(rt, caller, "PC_ResolutionNext", kResolutionNext, command_function<kResolutionNext>);
     ok &= add_command(rt, caller, "PC_ResolutionPrev", kResolutionPrev, command_function<kResolutionPrev>);
     ok &= add_command(rt, caller, "PC_ControlSchemeNext", kControlSchemeNext, command_function<kControlSchemeNext>);
+    ok &= add_command(rt, caller, "PC_SprintModeNext", kSprintModeNext, command_function<kSprintModeNext>);
     std::cerr << "[pc-settings] console variables registered at " << psprecomp::hex32(g.block)
               << (ok ? "" : " (some registrations failed)") << "\n";
 }
 
 }  // namespace
+
+bool guest_ready() { return g.registered && !g.failed; }
+std::uint32_t scratch_wide_string(psprecomp::Runtime &rt, const char *text) {
+    const std::uint32_t base = g.block + kScratch;
+    std::uint32_t at = base;
+    for (const char *c = text; at + 2u < base + 0x200u; ++c) {
+        rt.memory().store16(at, static_cast<std::uint16_t>(static_cast<unsigned char>(*c)));
+        at += 2u;
+        if (*c == '\0') break;
+    }
+    rt.memory().store16(base + 0x1FEu, 0u);
+    return base;
+}
+std::uint32_t call_guest_routine(psprecomp::Runtime &rt, const psprecomp::AllegrexContext &caller, std::uint32_t address,
+                                 std::initializer_list<std::uint32_t> args) {
+    last_return = 0u;
+    call_guest(rt, caller, address, args);
+    return last_return;
+}
 
 void poll(psprecomp::Runtime &rt, psprecomp::AllegrexContext &ctx) {
     // Register as soon as the console exists (Asura_CommandConsole_VarRepository
@@ -355,7 +390,7 @@ void poll(psprecomp::Runtime &rt, psprecomp::AllegrexContext &ctx) {
     bool changed = false;
     const auto take = [&](Slot slot) {
         const std::uint32_t value = slot == kFullscreen || slot == kPerPixelLighting || slot == kShadows || slot == kBloom ||
-                                            slot == kSmoothFog || slot == kInvertY || slot == kMouseInvertY
+                                            slot == kSmoothFog || slot == kInvertY || slot == kMouseInvertY || slot == kViewCentering
                                         ? (rt.memory().load8(slot_address(slot)) != 0u ? 1u : 0u)
                                         : rt.memory().load32(slot_address(slot));
         if (value == applied[slot]) return false;
@@ -381,6 +416,8 @@ void poll(psprecomp::Runtime &rt, psprecomp::AllegrexContext &ctx) {
     input |= take(kRightDeadzone);
     input |= take(kMouseSensitivity);
     input |= take(kMouseInvertY);
+    input |= take(kViewCentering);
+    input |= take(kSprintToggle);
     if (take(kControlScheme)) {
 #if defined(_WIN32)
         _putenv_s("RENEGADE_CONTROLS", slot_int(rt, kControlScheme) ? "legacy" : "modern");

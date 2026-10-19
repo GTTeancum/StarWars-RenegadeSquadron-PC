@@ -57,7 +57,7 @@ else()
 endif()
 target_precompile_headers(renegade_aot PRIVATE <psprecomp/runtime.hpp> <bit> <cmath> <cstdint> <limits>)
 endif()
-set(SERVICES host/control_context009.cpp host/material_audit009.cpp host/control_bridge008.cpp host/modern_input008.cpp host/savedata_io006.cpp host/psp_services.cpp host/extra_hle.cpp host/platform_services.cpp host/psmf_services.cpp host/display_sdl.cpp host/audio_sdl.cpp host/diagnostic_control.cpp host/precise_wait.cpp host/pc_settings.cpp host/game_font.cpp)
+set(SERVICES host/control_context009.cpp host/material_audit009.cpp host/control_bridge008.cpp host/modern_input008.cpp host/savedata_io006.cpp host/psp_services.cpp host/extra_hle.cpp host/platform_services.cpp host/psmf_services.cpp host/display_sdl.cpp host/audio_sdl.cpp host/diagnostic_control.cpp host/precise_wait.cpp host/pc_settings.cpp host/game_font.cpp host/menu_cursor.cpp host/key_prompts.cpp)
 foreach(name framebuffer_capture vcs_config vcs_camera_input
   vcs_vehicle_input vcs_fps_overlay vcs_media_decoder vcs_project2dfx
   vcs_project2dfx_lights vcs_draw_distance_patch vcs_runtime_log

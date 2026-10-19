@@ -23,6 +23,15 @@ struct Config {
  float look_x=1.f,look_y=1.f,curve=1.f,trigger_threshold=30.f/255.f;
  bool invert_y{};
  float mouse_sensitivity=1.f; bool mouse_invert_y{};
+ // Mouse look response time in seconds (Asura_ControlMapping_Axis fResponseTime
+ // with the decay following it); 0 feeds the raw per-frame motion.
+  float mouse_smoothing=.1f;  // AvP PC's look ramp-down time
+ // The PSP camera re-levels the infantry view after a moment without look
+ // input. Off on PC: the player aims with a mouse or a right stick.
+ bool view_centering{};
+ // Sprint (left stick click / Left Shift): a press starts sprinting and it
+ // stays on until pressed again or the player stops moving. False: hold.
+ bool sprint_toggle{true};
 };
 struct Frame {
  bool active{},enabled{};
@@ -37,6 +46,7 @@ RawPad live_keyboard_mouse(); // keyboard/mouse reduced to the same pad model
 bool keyboard_mouse_active(); // last input came from the keyboard or mouse
 void frame_tick(std::uint64_t vblank);
 Frame current();
+bool sprint_active(); // sprint as the game should see it (toggle or held)
 float trigger_threshold();
 std::uint64_t frame_number();
 bool pending_action(unsigned action); // consume a per-action, latched rising edge
