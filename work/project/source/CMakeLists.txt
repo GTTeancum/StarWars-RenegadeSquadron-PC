@@ -123,10 +123,37 @@ if(PSPRECOMP_BUILD_TESTS)
     add_test(NAME psprecomp_tests COMMAND psprecomp_tests)
 endif()
 
+option(PSPRECOMP_BUILD_VULKAN_TESTS "Build native Vulkan pixel tests without game assets" OFF)
+if(PSPRECOMP_BUILD_VULKAN_TESTS OR PSPRECOMP_PROFILE STREQUAL "renegade")
+    include(Vulkan.cmake)
+endif()
+
 if(NOT PSPRECOMP_PROFILE STREQUAL "")
     set(PSPRECOMP_PROFILE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/profiles/${PSPRECOMP_PROFILE}")
     if(NOT EXISTS "${PSPRECOMP_PROFILE_DIR}/CMakeLists.txt")
         message(FATAL_ERROR "Unknown PSPRecomp profile: ${PSPRECOMP_PROFILE}")
     endif()
     add_subdirectory("${PSPRECOMP_PROFILE_DIR}" "profiles/${PSPRECOMP_PROFILE}")
+endif()
+
+if(PSPRECOMP_BUILD_VULKAN_TESTS)
+    add_executable(renegade_disc_setup_test profiles/renegade/tests/disc_setup.cpp src/sha256.cpp)
+    target_include_directories(renegade_disc_setup_test PRIVATE include profiles/renegade/host)
+    target_compile_definitions(renegade_disc_setup_test PRIVATE NOMINMAX WIN32_LEAN_AND_MEAN)
+    set_target_properties(renegade_disc_setup_test PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
+    add_executable(renegade_vulkan_tests profiles/renegade/tests/vulkan.cpp
+        ${RENEGADE_VULKAN_SOURCES}
+        ${RENEGADE_GPU_HOST}/ge_gpu_backend_dx12.cpp
+        ${RENEGADE_GPU_HOST}/vcs_config.cpp
+        ${RENEGADE_GPU_HOST}/vcs_runtime_log.cpp
+        ${RENEGADE_GPU_HOST}/vcs_hdr_post_dx12_stub.cpp)
+    target_include_directories(renegade_vulkan_tests PRIVATE ${RENEGADE_GPU_HOST} ${RENEGADE_VULKAN_HEADERS} ${RENEGADE_VULKAN_GENERATED})
+    target_compile_definitions(renegade_vulkan_tests PRIVATE NOMINMAX WIN32_LEAN_AND_MEAN)
+    target_link_libraries(renegade_vulkan_tests PRIVATE d3d12 dxgi d3dcompiler)
+    set_target_properties(renegade_vulkan_tests PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
+    enable_testing()
+    add_test(NAME renegade_vulkan_tests COMMAND renegade_vulkan_tests 4)
+    add_test(NAME renegade_vulkan_tests_single_sample COMMAND renegade_vulkan_tests 1)
+    add_test(NAME renegade_vulkan_tests_presentation COMMAND renegade_vulkan_tests 4 present)
+    set_tests_properties(renegade_vulkan_tests renegade_vulkan_tests_single_sample renegade_vulkan_tests_presentation PROPERTIES RUN_SERIAL TRUE)
 endif()

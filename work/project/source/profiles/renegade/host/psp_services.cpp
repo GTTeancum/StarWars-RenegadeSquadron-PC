@@ -7364,6 +7364,10 @@ void install_profile(psprecomp::Runtime &runtime, std::uint32_t user_arena_start
                                                       dialog_rgba);
         }
         const bool gpu_frame_ready = ge_gpu_backend_finish_color_frame(display_vblank_index);
+        if (!gpu_frame_ready && vcs_configuration().rendering.backend == RenderingBackend::Vulkan &&
+            !ge_gpu_backend_active()) {
+            throw psprecomp::Error("Native Vulkan rendering failed: " + ge_gpu_backend_report().message);
+        }
         // VCS only fills the displayed framebuffer on every other vblank, so the
         // GPU path produces a frame at half the vblank rate. Presenting the
         // software framebuffer in between alternated two differently scaled

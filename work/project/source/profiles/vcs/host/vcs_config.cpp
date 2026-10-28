@@ -297,14 +297,10 @@ void apply_rendering_key(VcsConfiguration &config, const std::string &key,
             config.rendering.backend = RenderingBackend::Software;
         else if (backend == "directx12" || backend == "dx12" || backend == "d3d12" || backend == "gpu")
             config.rendering.backend = RenderingBackend::DirectX12;
-        else if (backend == "vulkan") {
-            // Stage 44 removes Vulkan from the Windows runtime. Keep the old
-            // spelling as a migration alias so an existing INI does not silently
-            // fall back to the CPU renderer.
-            config.rendering.backend = RenderingBackend::DirectX12;
-            warning(config, line, "Rendering.Backend=Vulkan is deprecated; using DirectX12");
-        } else
-            warning(config, line, "Rendering.Backend expects Software or DirectX12");
+        else if (backend == "vulkan")
+            config.rendering.backend = RenderingBackend::Vulkan;
+        else
+            warning(config, line, "Rendering.Backend expects Software, DirectX12 or Vulkan");
         return;
     }
     if (key == "internalresolutionmode" || key == "internalmode") {
@@ -749,6 +745,11 @@ void initialize_vcs_configuration(const std::filesystem::path &executable_direct
 
     VcsConfiguration loaded = load_vcs_configuration(path);
     load_proper_shaders_configuration(loaded, executable_directory / "ProperShaders.ini");
+    // Explicit renderer selection must also reach the actual backend, not just
+    // the legacy environment-based GE frontend.
+    if (const char* backend = std::getenv("PSPRECOMP_GE_BACKEND"); backend && *backend) {
+        apply_rendering_key(loaded, "backend", backend, 0);
+    }
     loaded.initialized = true;
     loaded.executable_directory = executable_directory;
     {
@@ -771,7 +772,7 @@ void initialize_vcs_configuration(const std::filesystem::path &executable_direct
     if (std::getenv("PSPRECOMP_GE_BACKEND") == nullptr) {
         set_environment_value("PSPRECOMP_GE_BACKEND",
                               config.rendering.backend == RenderingBackend::DirectX12
-                                  ? "directx12" : "software");
+                                  ? "directx12" : config.rendering.backend == RenderingBackend::Vulkan ? "vulkan" : "software");
     }
     const InternalResolutionDimensions internal =
         resolve_internal_resolution(config.rendering);
@@ -842,6 +843,7 @@ const char *internal_resolution_mode_name(InternalResolutionMode mode) noexcept 
 
 const char *rendering_backend_name(RenderingBackend backend) noexcept {
     switch (backend) {
+    case RenderingBackend::Vulkan: return "Vulkan";
     case RenderingBackend::Software: return "Software";
     case RenderingBackend::DirectX12: return "DirectX 12";
     }

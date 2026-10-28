@@ -33,6 +33,7 @@ enum class InternalResolutionMode : std::uint8_t {
 enum class RenderingBackend : std::uint8_t {
     Software,
     DirectX12,
+    Vulkan,
 };
 
 struct DisplayConfiguration {

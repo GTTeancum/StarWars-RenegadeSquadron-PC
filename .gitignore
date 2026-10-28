@@ -77,3 +77,5 @@ work/project/source/profiles/renegade/generated/
 !docs/
 !docs/**
 work/project/tools/callback003.full.cpp
+
+work/windows-sdk-sha256.json

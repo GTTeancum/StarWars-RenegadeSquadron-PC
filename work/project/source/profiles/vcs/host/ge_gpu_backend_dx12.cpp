@@ -35,7 +35,8 @@
 #include <wrl/client.h>
 #endif
 
-namespace vcs {
+namespace vcs::dx12 {
+#include "ge_gpu_backend_api.inc"
 namespace {
 bool g_smooth_fog = [] {
     const char *text = std::getenv("RENEGADE_FOG_CURVE");
@@ -4242,7 +4243,7 @@ void ge_gpu_backend_accumulate_color_triangles(
         return;
     }
     try {
-        const bool sampled_texture = draw.texture_enabled && ge_gpu_backend_texture_available(draw);
+        const bool sampled_texture = draw.texture_enabled && dx12::ge_gpu_backend_texture_available(draw);
         const std::uint32_t first = static_cast<std::uint32_t>(s.vertices.size());
         for (const GeGpuVertex &source : triangle_vertices) {
             Dx12UploadVertex vertex = make_upload_vertex(source);
@@ -4287,7 +4288,7 @@ bool ge_gpu_backend_attach_normal_map(const GeGpuDrawDescriptor &draw, std::uint
     normal.texture_image_key_hint = (draw.texture_image_key_hint ^ kNormalSalt) | 1u;
     normal.texture_mipmap_enabled = false;
     normal.texture_max_level = 0u;
-    if (!ge_gpu_backend_upload_decoded_texture_chain_packed(normal, width, height, 1u, std::move(rgba)))
+    if (!dx12::ge_gpu_backend_upload_decoded_texture_chain_packed(normal, width, height, 1u, std::move(rgba)))
         return false;
     clear_texture_lookup_cache(s);
     Dx12Texture *base = find_cached_texture(s, key);
@@ -4382,7 +4383,7 @@ void ge_gpu_backend_accumulate_hardware_triangles(
     }
 
     try {
-        const bool sampled_texture = draw.texture_enabled && ge_gpu_backend_texture_available(draw);
+        const bool sampled_texture = draw.texture_enabled && dx12::ge_gpu_backend_texture_available(draw);
         const std::uint32_t first_vertex = static_cast<std::uint32_t>(s.vertices.size());
         const std::uint32_t first_index = static_cast<std::uint32_t>(s.indices.size());
 
@@ -4544,7 +4545,7 @@ bool ge_gpu_backend_accumulate_hardware_packed_0115(
         s.report.hw_transform_prim_batches += logical;
         s.report.hw_transform_unique_vertices_decoded += transform.unique_vertices_decoded;
         s.report.hw_transform_index_reuses += transform.index_reuses;
-        if (draw.texture_enabled && ge_gpu_backend_texture_available(draw))
+        if (draw.texture_enabled && dx12::ge_gpu_backend_texture_available(draw))
             s.report.textured_game_draw_calls += logical;
         else if (draw.texture_enabled)
             s.report.game_textured_draws_without_texture += logical;

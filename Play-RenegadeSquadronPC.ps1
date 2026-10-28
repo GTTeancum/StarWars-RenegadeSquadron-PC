@@ -6,7 +6,7 @@ param(
     [string]$Resolution = '1280x720',
     # PC: optimized build, graphics-card rendering presented straight to the window,
     # 60 fps game cap, per-pixel lighting, bloom and sun shadows (each can be turned off).
-    [ValidateSet('PC','Software','DirectX12')]
+    [ValidateSet('PC','Software','DirectX12','Vulkan')]
     [string]$Renderer = 'PC',
     [double]$FrameRateCap = 60,
     [switch]$NoPerPixelLighting,
@@ -40,7 +40,7 @@ param(
 $ErrorActionPreference = 'Stop'
 $RepoRoot = $PSScriptRoot
 $WorkRoot = Join-Path $RepoRoot 'work'
-$Exe = Join-Path $WorkRoot $(if ($Renderer -eq 'PC') { 'build-perf\bin\RenegadeNative.exe' } else { 'build-windows-native\bin\RenegadeNative.exe' })
+$Exe = Join-Path $WorkRoot $(if ($Renderer -in @('PC','Vulkan','DirectX12')) { 'build-perf\bin\RenegadeNative.exe' } else { 'build-windows-native\bin\RenegadeNative.exe' })
 $Boot = Join-Path $WorkRoot 'game\disc\PSP_GAME\SYSDIR\BOOT.BIN'
 $Disc = Join-Path $WorkRoot 'game\disc'
 
@@ -83,18 +83,19 @@ $env:PSPRECOMP_AUDIO = '1'
 $env:PSPRECOMP_FRAME_LIMIT = '1'
 $env:PSPRECOMP_RASTER_THREADS = '1'
 $GpuPreview = $Renderer -ne 'Software'
-$PcMode = $Renderer -eq 'PC'
-$env:PSPRECOMP_GE_BACKEND = if ($GpuPreview) { 'directx12' } else { 'software' }
-$env:PSPRECOMP_CONFIG = Join-Path $WorkRoot $(if ($GpuPreview) { 'rendering/dx12-preview.ini' } else { 'rendering/software.ini' })
+$PcMode = $Renderer -in @('PC','Vulkan','DirectX12')
+$env:PSPRECOMP_GE_BACKEND = if ($Renderer -eq 'Software') { 'software' } elseif ($Renderer -eq 'DirectX12') { 'directx12' } else { 'vulkan' }
+$env:PSPRECOMP_CONFIG = Join-Path $WorkRoot $(if ($env:PSPRECOMP_GE_BACKEND -eq 'vulkan') { 'rendering/vulkan.ini' } elseif ($GpuPreview) { 'rendering/dx12-preview.ini' } else { 'rendering/software.ini' })
 $env:PSPRECOMP_DX12_GE_READBACK = if ($GpuPreview -and !$PcMode) { '1' } else { '0' }
 $env:PSPRECOMP_DX12_GE_STRICT = if ($GpuPreview) { '1' } else { '0' }
 $env:PSPRECOMP_GE_GPU_SKIP_SOFTWARE_RASTER = if ($PcMode) { '1' } else { '0' }
 $env:PSPRECOMP_GE_GPU_HW_TRANSFORM = if ($PcMode) { '1' } else { '0' }
 # PC mode: the game's own frame cap raised from the PSP's 20 fps, and the Asura-PC-derived lighting.
 $env:RENEGADE_FRAME_RATE_CAP = if ($PcMode) { $FrameRateCap.ToString([Globalization.CultureInfo]::InvariantCulture) } else { '0' }
-$env:RENEGADE_PER_PIXEL_LIGHTING = if ($PcMode -and !$NoPerPixelLighting) { '1' } else { '0' }
-$env:RENEGADE_BLOOM = if ($PcMode -and !$NoBloom) { '1' } else { '0' }
-$env:RENEGADE_SHADOWS = if ($PcMode -and !$NoShadows -and !$NoPerPixelLighting) { '1' } else { '0' }
+$Dx12Effects = $Renderer -eq 'DirectX12'
+$env:RENEGADE_PER_PIXEL_LIGHTING = if ($Dx12Effects -and !$NoPerPixelLighting) { '1' } else { '0' }
+$env:RENEGADE_BLOOM = if ($Dx12Effects -and !$NoBloom) { '1' } else { '0' }
+$env:RENEGADE_SHADOWS = if ($Dx12Effects -and !$NoShadows -and !$NoPerPixelLighting) { '1' } else { '0' }
 $env:RENEGADE_FOG_CURVE = if ($PcMode -and $SmoothFog) { 'smooth' } else { 'linear' }
 $env:PSPRECOMP_GE_GPU_HW_CULL = '0'
 $env:RENEGADE_OUTPUT_RESOLUTION = $Resolution

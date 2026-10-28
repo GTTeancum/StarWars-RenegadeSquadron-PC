@@ -13,6 +13,7 @@ namespace vcs {
 enum class GeGpuBackendKind : std::uint8_t {
     Software,
     DirectX12,
+    Vulkan,
 };
 
 struct GeGpuDrawDescriptor {
@@ -436,10 +437,9 @@ struct GeGpuBackendReport {
     std::string message;
 };
 
-// Initializes the optional persistent GPU prototype. The default remains the
-// bit-exact software rasterizer. Set PSPRECOMP_GE_BACKEND=vulkan to create a
-// persistent Vulkan instance/device and transfer/upload path while software
-// rendering remains authoritative during bring-up.
+// Initializes the configured native renderer. The Renegade player selects
+// Vulkan by default; DirectX12 and Software remain explicit alternatives.
+// Vulkan initialization failure is reported without silently changing APIs.
 [[nodiscard]] bool initialize_ge_gpu_backend(std::string &error);
 void shutdown_ge_gpu_backend() noexcept;
 

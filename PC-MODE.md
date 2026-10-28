@@ -1,8 +1,12 @@
 # PC mode
 
+The default PC renderer is now **native Vulkan**. `-Renderer DirectX12` explicitly selects the older backend. Vulkan currently uses original GE vertex lighting, supports MSAA and direct presentation, and retains a readback for native captures. Enhanced per-pixel lighting, normal maps, sun shadows and bloom remain DirectX-only. See [Vulkan notes](docs/VULKAN.md).
+
+The performance figures and enhanced-rendering implementation descriptions below describe the original DirectX 12 path, not a Vulkan benchmark.
+
 `Play-RenegadeSquadronPC.cmd` now starts in **PC mode** by default. It runs the optimized build
 (`work\build-perf\bin\RenegadeNative.exe`, built with `work\build-perf.cmd`) with the graphics card
-drawing the game and presenting straight to the window. Nothing is drawn on the CPU.
+drawing the game and presenting straight to the window. Rasterization runs on the GPU.
 
 Measured on the Echo Base replay at 1280x720 (Ryzen 7 8745HS / Radeon 780M): about 58-59 frames per
 second with all features on, against about 1.5 before this work.

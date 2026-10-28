@@ -2,6 +2,7 @@
 #include "material_audit009.hpp"
 #include "modern_input008.hpp"
 #include "pc_settings.hpp"
+#include "disc_setup.hpp"
 #include "psprecomp/elf32.hpp"
 #include "psprecomp/sha256.hpp"
 #include "psprecomp/runtime.hpp"
@@ -78,9 +79,9 @@ void apply_installed_settings(const std::filesystem::path& root) {
     }
     const auto get=[&](const char* key,const char* fallback) { const auto it=settings.find(key); return it==settings.end()||it->second.empty()?std::string(fallback):it->second; };
     const auto flag=[&](const char* key,bool fallback) { const std::string v=lower(get(key,fallback?"true":"false")); return v=="1"||v=="true"||v=="yes"||v=="on"; };
-    // Window, audio and the PC-mode renderer: DirectX 12 on the graphics card, presented straight to the window.
+    // Window, audio and the PC-mode renderer: native Vulkan on the graphics card, presented straight to the window.
     set_default("PSPRECOMP_WINDOW","1"); set_default("PSPRECOMP_AUDIO","1"); set_default("PSPRECOMP_FRAME_LIMIT","1");
-    set_default("PSPRECOMP_RASTER_THREADS","1"); set_default("PSPRECOMP_GE_BACKEND","directx12");
+    set_default("PSPRECOMP_RASTER_THREADS","1"); set_default("PSPRECOMP_GE_BACKEND",lower(get("rendering.backend","vulkan")));
     set_default("PSPRECOMP_DX12_GE_READBACK","0"); set_default("PSPRECOMP_DX12_GE_STRICT","1");
     set_default("PSPRECOMP_GE_GPU_SKIP_SOFTWARE_RASTER","1"); set_default("PSPRECOMP_GE_GPU_HW_TRANSFORM","1");
     set_default("PSPRECOMP_GE_GPU_HW_CULL","0");
@@ -90,10 +91,10 @@ void apply_installed_settings(const std::filesystem::path& root) {
     set_default("RENEGADE_OUTPUT_RESOLUTION",get("graphics.windowsize","1280x720"));
     set_default("RENEGADE_FULLSCREEN",flag("graphics.fullscreen",false)?"1":"0");
     set_default("RENEGADE_FRAME_RATE_CAP",get("graphics.frameratecap","60"));
-    const bool per_pixel=flag("graphics.perpixellighting",true);
+    const bool per_pixel=flag("graphics.perpixellighting",false);
     set_default("RENEGADE_PER_PIXEL_LIGHTING",per_pixel?"1":"0");
-    set_default("RENEGADE_SHADOWS",per_pixel && flag("graphics.shadows",true)?"1":"0");
-    set_default("RENEGADE_BLOOM",flag("graphics.bloom",true)?"1":"0");
+    set_default("RENEGADE_SHADOWS",per_pixel && flag("graphics.shadows",false)?"1":"0");
+    set_default("RENEGADE_BLOOM",flag("graphics.bloom",false)?"1":"0");
     set_default("RENEGADE_FOG_CURVE",flag("graphics.smoothfog",false)?"smooth":"linear");
     if(std::filesystem::is_directory(root/"mods"/"files") || (flag("graphics.replacementtextures",true) && std::filesystem::is_directory(root/"mods"/"textures")))
         set_default("RENEGADE_OVERRIDE_ROOT",(root/"mods").string());
@@ -135,7 +136,8 @@ void report_startup_error(bool installed,const std::string& message) {
 }
 }
 int main(int argc,char** argv) {
-    const bool installed=argc==1;
+    const bool prepare_only=argc==2 && std::string(argv[1])=="--prepare-data";
+    const bool installed=argc==1 || prepare_only;
     std::filesystem::path boot_path,disc_path;
     if(installed) {
         const auto root=executable_directory(argv[0]);
@@ -153,6 +155,7 @@ int main(int argc,char** argv) {
     auto runtime=std::make_unique<psprecomp::Runtime>();auto& rt=*runtime;
     try {
         std::string error;
+        if(installed) renegade::disc_setup::prepare(executable_directory(argv[0]));
         constexpr const char* expected_boot = "f4c7a9ef93475fc8017f649346ef79b599649dc47462ec419e9fd373146f8c68";
         if(!std::filesystem::is_regular_file(boot_path) || std::filesystem::file_size(boot_path)!=4403020u ||
            psprecomp::sha256_file(boot_path)!=expected_boot)
@@ -162,6 +165,7 @@ int main(int argc,char** argv) {
            !std::filesystem::is_regular_file(disc/"PSP_GAME/PARAM.SFO") ||
            psprecomp::sha256_file(disc/"PSP_GAME/PARAM.SFO")!="18c944abd8f28b44c95719d27211d0ec6dcb00a535c0ca1c60ff03658d584fd4")
             throw std::runtime_error("Disc-root identity mismatch: expected extracted ULUS10292 PSP_GAME directory");
+        if(prepare_only) return 0;
         std::uint64_t budget=installed?1000000000000ull:10000000ull;
         if(argc==4) {
             const std::string value=argv[3]; std::size_t used=0;

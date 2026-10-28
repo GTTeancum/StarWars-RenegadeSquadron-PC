@@ -1,4 +1,7 @@
 @echo off
+if not exist "%~dp0..\.local\temp" mkdir "%~dp0..\.local\temp"
+set "TEMP=%~dp0..\.local\temp"
+set "TMP=%TEMP%"
 rem Generates the translated game code from your own ULUS10292 BOOT.BIN.
 rem Usage: generate-perf.cmd [output-directory]
 rem Default output: work\project\source\profiles\renegade\generated (not distributed).
@@ -10,9 +13,13 @@ if "%OUT%"=="" set "OUT=%ROOT%project\source\profiles\renegade\generated"
 set "CMAKE=cmake"
 if exist "%ROOT%build-tools\cmake\data\bin\cmake.exe" set "CMAKE=%ROOT%build-tools\cmake\data\bin\cmake.exe"
 set "NINJA=ninja"
+if exist "C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\Ninja\ninja.exe" set "NINJA=C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\Ninja\ninja.exe"
 if exist "%ROOT%build-tools\bin\ninja.exe" set "NINJA=%ROOT%build-tools\bin\ninja.exe"
 set "BOOT=%ROOT%game\disc\PSP_GAME\SYSDIR\BOOT.BIN"
-if not exist "%BOOT%" echo Missing %BOOT% - extract your game disc to work\game\disc first.& exit /b 1
+if not exist "%BOOT%" (
+ echo Missing %BOOT% - extract your game disc to work\game\disc first.
+ exit /b 1
+)
 rem The recompiler is part of the framework; build it without the game profile.
 "%CMAKE%" -S "%ROOT%project\source" -B "%ROOT%build-framework" -G Ninja -DCMAKE_MAKE_PROGRAM="%NINJA%" -DCMAKE_BUILD_TYPE=Release -DPSPRECOMP_PROFILE= -DPSPRECOMP_BUILD_TESTS=OFF
 if errorlevel 1 exit /b %errorlevel%

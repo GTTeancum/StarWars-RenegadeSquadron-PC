@@ -2053,8 +2053,8 @@ bool software_raster_skipped(const std::array<std::uint32_t, 256> &commands) noe
         // offscreen targets as well as submitting the same geometry to D3D12.
         // That double raster is unnecessary once DX12GEColor is enabled.
         const VcsConfiguration &cfg = vcs_configuration();
-        return cfg.initialized && cfg.rendering.backend == RenderingBackend::DirectX12 &&
-               cfg.rendering.dx12_ge_color;
+        return cfg.initialized && (cfg.rendering.backend == RenderingBackend::Vulkan ||
+               (cfg.rendering.backend == RenderingBackend::DirectX12 && cfg.rendering.dx12_ge_color));
     }();
     static const bool skip_owned = [] {
         const char *value = std::getenv("PSPRECOMP_GE_GPU_SKIP_OWNED_RASTER");

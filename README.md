@@ -3,7 +3,7 @@
 A native Windows port of the PSP game *Star Wars Battlefront: Renegade Squadron* (ULUS10292), made by
 **static recompilation**: the game's PSP program is translated into C++ and compiled into a regular
 Windows executable. There is no emulator. A native host layer replaces the PSP system services, and
-the game is drawn with DirectX 12.
+the game uses a native Vulkan renderer by default. DirectX 12 remains selectable.
 
 The game's disc data is not included. You need your own copy of the game.
 
@@ -27,10 +27,10 @@ Playable, with known issues.
 
 - Boots through the menus into ground and space battles. Captures from recorded play cover 11 maps,
   including space battles.
-- Runs at about 58 frames per second at 1280×720 on a Ryzen 7 8745HS with Radeon 780M graphics.
+- Historical DirectX 12 measurement: runs at about 58 frames per second at 1280×720 on a Ryzen 7 8745HS with Radeon 780M graphics.
 - DirectX 12 rendering with 4× MSAA, presented directly to the window.
 - Game frame rate raised from the PSP's 20 fps to 60 fps.
-- Per-pixel lighting, sun shadows and bloom (each can be switched off).
+- The original DirectX 12 path supports per-pixel lighting, sun shadows and bloom. The initial Vulkan path uses original GE vertex lighting; enhanced normal maps, sun shadows and bloom are not yet implemented.
 - Texture replacement packs, including normal maps (see [OVERRIDES.md](OVERRIDES.md) and
   [PC-MODE.md](PC-MODE.md)).
 - Modern twin-stick controls with Xbox/XInput controllers (see [MODERN-CONTROLS.md](MODERN-CONTROLS.md)).
@@ -43,7 +43,7 @@ Known issues:
 
 ## Requirements
 
-- Windows 10 or 11, 64-bit, with a DirectX 12 graphics card.
+- Windows 10 or 11, 64-bit, with a Vulkan 1.1-capable graphics driver (or DirectX 12 when explicitly selected).
 - Your own copy of the game: the US release, ULUS10292. The build checks `BOOT.BIN` against SHA-256
   `f4c7a9ef93475fc8017f649346ef79b599649dc47462ec419e9fd373146f8c68`.
 - Visual Studio 2022 Community with the C++ workload (MSVC 14.44), installed at the default location.
@@ -62,6 +62,7 @@ All commands run from the repository root.
 
    ```
    pwsh work\restore-windows-dependencies.ps1
+pwsh work\restore-vulkan-dependencies.ps1
    ```
 
 3. **Generate the translated game code** from your own `BOOT.BIN`. This builds the recompiler and writes
@@ -81,6 +82,17 @@ All commands run from the repository root.
 
    The number is how many files compile in parallel. Each one can use more than a gigabyte of memory;
    lower it on machines with less than 32 GB.
+
+For a first test build with less compiler memory/time spent on automatic inlining:
+
+```bat
+work\configure-perf.cmd "-DRENEGADE_AOT_MSVC_OPT=/O2;/Ob0"
+work\build-perf.cmd 2 RenegadeSquadron RenegadeNative
+```
+
+This retains optimization but disables automatic inlining in translated game code; performance is not equivalent to the original full-inlining build. Renderer sources remain optimized.
+
+Native renderer tests require no game files: `work\test-vulkan.cmd`. See [Vulkan implementation and validation](docs/VULKAN.md).
 
 ## Running
 
