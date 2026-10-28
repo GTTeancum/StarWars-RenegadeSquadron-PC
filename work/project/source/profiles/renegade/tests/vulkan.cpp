@@ -225,6 +225,24 @@ int main(int argc, char **argv) {
     pixel(30, 240, 0xffffff00);
     pixel(15, 225, 0xff302010);
     pixel(140, 245, 0xff8040ff);
+    // Model UVs are normalized after GE scale/offset, unlike screen texels.
+    colors[0] = 0xff0000ff;
+    colors[1] = 0xff00ff00;
+    colors[2] = 0xffff0000;
+    colors[3] = 0xffffffff;
+    check(vcs::ge_gpu_backend_upload_decoded_texture(
+              tex, 2, 2,
+              {reinterpret_cast<const std::byte *>(colors), sizeof(colors)}),
+          "Model texture upload");
+    hw.uv_scale_u = hw.uv_scale_v = 0.5f;
+    hw.uv_offset_u = hw.uv_offset_v = 0.25f;
+    for (auto &v : model) {
+      v.u = v.v = 1.0f;
+      v.rgba = 0xffffffff;
+    }
+    vcs::ge_gpu_backend_accumulate_hardware_triangles(tex, hw, model, indices);
+    check(vcs::ge_gpu_backend_finish_color_frame(5), "Model texture frame");
+    pixel(140, 245, 0xffffffff);
     if (hidden) {
       vcs::ge_gpu_backend_set_native_window(nullptr);
       DestroyWindow(hidden);

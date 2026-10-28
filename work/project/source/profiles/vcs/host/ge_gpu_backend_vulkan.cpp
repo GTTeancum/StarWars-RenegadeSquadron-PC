@@ -1039,6 +1039,10 @@ void draw(const GeGpuDrawDescriptor &d, std::span<const GeGpuVertex> vertices,
   }
   pc.uv = {1.f / (is_feedback ? 480u : std::max(1u, d.texture_width)),
            1.f / (is_feedback ? 272u : std::max(1u, d.texture_height)), 0, 0};
+  // Hardware-transformed vertices already carry normalized GE texture UVs.
+  // Only the screen-space path supplies texel coordinates.
+  if (clip_space)
+    pc.uv = {1, 1, 0, 0};
   pc.control = {d.clear_mode
                     ? 0u
                     : unsigned(d.alpha_test_enabled) | (d.alpha_function << 8) |
