@@ -1,7 +1,13 @@
 #include "ge_gpu_backend.hpp"
 #include "vcs_config.hpp"
+#ifdef _WIN32
 #include <windows.h>
 #define VK_USE_PLATFORM_WIN32_KHR
+#else
+#include <dlfcn.h>
+#include <SDL2/SDL.h>
+#include <SDL2/SDL_vulkan.h>
+#endif
 #define VK_NO_PROTOTYPES
 #include "ge_vulkan_spirv.hpp"
 #include <algorithm>
@@ -48,7 +54,7 @@ namespace {
                                                   CmdClearAttachments) X(CmdClearColorImage)                       \
                                                   X(CmdClearDepthStencilImage) X(                                  \
                                                       CmdBlitImage) X(CmdCopyImage)                                \
-                                                      X(CreateWin32SurfaceKHR) X(                                  \
+                                                      X(                                  \
                                                           DestroySurfaceKHR) X(GetPhysicalDeviceSurfaceSupportKHR) \
                                                           X(GetPhysicalDeviceSurfaceCapabilitiesKHR) X(            \
                                                               GetPhysicalDeviceSurfaceFormatsKHR)                  \
@@ -61,6 +67,9 @@ namespace {
                                                                               X(DestroySemaphore)
 #define DECLARE(name) PFN_vk##name vk##name{};
 VK_FUNCTIONS(DECLARE)
+#ifdef _WIN32
+DECLARE(CreateWin32SurfaceKHR)
+#endif
 #undef DECLARE
 PFN_vkGetInstanceProcAddr getProc{};
 void check(VkResult r, const char *op) {
@@ -102,7 +111,11 @@ struct Push {
 };
 static_assert(sizeof(Push) == 128);
 struct State {
+#ifdef _WIN32
   HMODULE loader{};
+#else
+  void *loader{};
+#endif
   VkInstance instance{};
   VkPhysicalDevice gpu{};
   VkDevice device{};
@@ -126,7 +139,11 @@ struct State {
   Target *active{};
   unsigned display{}, owned{};
   std::uint64_t frame{};
+#ifdef _WIN32
   HWND window{};
+#else
+  SDL_Window *window{};
+#endif
   VkSurfaceKHR surface{};
   VkSwapchainKHR swap{};
   VkSemaphore acquired{}, finished{};
@@ -632,11 +649,19 @@ void destroy_swap() {
   s.swap_images.clear();
   s.sw = s.sh = 0;
 }
-void ensure_swap() {
+std::pair<unsigned, unsigned> window_size() {
+#ifdef _WIN32
   RECT r{};
   GetClientRect(s.window, &r);
-  unsigned w = unsigned(std::max(0L, r.right)),
-           h = unsigned(std::max(0L, r.bottom));
+  return {unsigned(std::max(0L, r.right)), unsigned(std::max(0L, r.bottom))};
+#else
+  int w = 0, h = 0;
+  SDL_Vulkan_GetDrawableSize(s.window, &w, &h);
+  return {unsigned(std::max(0, w)), unsigned(std::max(0, h))};
+#endif
+}
+void ensure_swap() {
+  auto [w, h] = window_size();
   if (!w || !h)
     return;
   if (s.swap && w == s.sw && h == s.sh)
@@ -691,9 +716,8 @@ void ensure_swap() {
       vkGetSwapchainImagesKHR(s.device, s.swap, &count, s.swap_images.data()));
 }
 void present(Target &t) {
-  RECT client{};
-  if (!GetClientRect(s.window, &client) || client.right <= 0 ||
-      client.bottom <= 0)
+  auto [client_width, client_height] = window_size();
+  if (!client_width || !client_height)
     return;
   ensure_swap();
   if (!s.swap)
@@ -755,13 +779,21 @@ void present(Target &t) {
     check(result, "vkQueuePresentKHR");
 }
 void initialize() {
+#ifdef _WIN32
   s.loader =
       LoadLibraryExW(L"vulkan-1.dll", nullptr, LOAD_LIBRARY_SEARCH_SYSTEM32);
+#else
+  s.loader = dlopen("libvulkan.so.1", RTLD_NOW | RTLD_LOCAL);
+#endif
   if (!s.loader)
     throw std::runtime_error(
         "Vulkan loader missing: install the graphics card's Vulkan driver");
   getProc = reinterpret_cast<PFN_vkGetInstanceProcAddr>(
+#ifdef _WIN32
       GetProcAddress(s.loader, "vkGetInstanceProcAddr"));
+#else
+      dlsym(s.loader, "vkGetInstanceProcAddr"));
+#endif
   if (!getProc)
     throw std::runtime_error("vkGetInstanceProcAddr unavailable");
   auto create = reinterpret_cast<PFN_vkCreateInstance>(
@@ -769,16 +801,33 @@ void initialize() {
   VkApplicationInfo app{VK_STRUCTURE_TYPE_APPLICATION_INFO};
   app.pApplicationName = "Renegade Squadron";
   app.apiVersion = VK_API_VERSION_1_1;
-  const char *extensions[] = {VK_KHR_SURFACE_EXTENSION_NAME,
-                              VK_KHR_WIN32_SURFACE_EXTENSION_NAME};
+  std::vector<const char *> extensions;
+#ifdef _WIN32
+  extensions = {VK_KHR_SURFACE_EXTENSION_NAME, VK_KHR_WIN32_SURFACE_EXTENSION_NAME};
+#else
+  // Enable available Linux surface types without opening a desktop connection
+  // during headless runs. SDL chooses its actual surface when a window is made.
+  auto enumerate = reinterpret_cast<PFN_vkEnumerateInstanceExtensionProperties>(
+      getProc(VK_NULL_HANDLE, "vkEnumerateInstanceExtensionProperties"));
+  unsigned extension_count = 0;
+  VK_CHECK(enumerate(nullptr, &extension_count, nullptr));
+  std::vector<VkExtensionProperties> available(extension_count);
+  VK_CHECK(enumerate(nullptr, &extension_count, available.data()));
+  for (const char *name : {"VK_KHR_surface", "VK_KHR_xlib_surface", "VK_KHR_xcb_surface", "VK_KHR_wayland_surface"})
+    if (std::any_of(available.begin(), available.end(), [name](const auto &e) { return std::strcmp(name, e.extensionName) == 0; }))
+      extensions.push_back(name);
+#endif
   VkInstanceCreateInfo ci{VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO};
   ci.pApplicationInfo = &app;
-  ci.enabledExtensionCount = 2;
-  ci.ppEnabledExtensionNames = extensions;
+  ci.enabledExtensionCount = unsigned(extensions.size());
+  ci.ppEnabledExtensionNames = extensions.data();
   VK_CHECK(create(&ci, nullptr, &s.instance));
 #define LOAD(name)                                                             \
   vk##name = reinterpret_cast<PFN_vk##name>(getProc(s.instance, "vk" #name));
   VK_FUNCTIONS(LOAD)
+#ifdef _WIN32
+  LOAD(CreateWin32SurfaceKHR)
+#endif
 #undef LOAD
   unsigned count = 0;
   VK_CHECK(vkEnumeratePhysicalDevices(s.instance, &count, nullptr));
@@ -1122,7 +1171,11 @@ void shutdown_ge_gpu_backend() noexcept {
   if (s.instance)
     vkDestroyInstance(s.instance, nullptr);
   if (s.loader)
+#ifdef _WIN32
     FreeLibrary(s.loader);
+#else
+    dlclose(s.loader);
+#endif
   s = State{};
 }
 bool ge_gpu_backend_active() noexcept { return s.enabled && !s.failed; }
@@ -1382,14 +1435,23 @@ void ge_gpu_backend_set_native_window(void *window) noexcept {
     if (s.surface)
       vkDestroySurfaceKHR(s.instance, s.surface, nullptr);
     s.surface = {};
+#ifdef _WIN32
     s.window = static_cast<HWND>(window);
+#else
+    s.window = static_cast<SDL_Window *>(window);
+#endif
     if (!window || !s.enabled)
       return;
+#ifdef _WIN32
     VkWin32SurfaceCreateInfoKHR ci{
         VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR};
     ci.hinstance = GetModuleHandleW(nullptr);
     ci.hwnd = s.window;
     VK_CHECK(vkCreateWin32SurfaceKHR(s.instance, &ci, nullptr, &s.surface));
+#else
+    if (!SDL_Vulkan_CreateSurface(s.window, s.instance, &s.surface))
+      throw std::runtime_error(std::string("SDL Vulkan surface: ") + SDL_GetError());
+#endif
     VkBool32 supported = 0;
     VK_CHECK(vkGetPhysicalDeviceSurfaceSupportKHR(s.gpu, s.family, s.surface,
                                                   &supported));

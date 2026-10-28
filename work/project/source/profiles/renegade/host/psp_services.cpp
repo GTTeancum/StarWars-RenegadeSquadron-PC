@@ -546,7 +546,7 @@ std::filesystem::path resolve_file_override(const psprecomp::Runtime &rt, const 
     if (files_root.empty()) return native;
     std::error_code error;
     const auto relative = std::filesystem::relative(native, rt.game_root(), error);
-    if (error || relative.empty() || relative.native().starts_with(L"..")) return native;
+    if (error || relative.empty() || *relative.begin() == "..") return native;
     const auto candidate = files_root / relative;
     if (!std::filesystem::is_regular_file(candidate, error) || error) return native;
     static std::unordered_set<std::string> reported;

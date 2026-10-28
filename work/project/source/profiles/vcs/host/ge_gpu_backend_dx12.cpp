@@ -5476,6 +5476,7 @@ const char *ge_gpu_backend_name(GeGpuBackendKind kind) noexcept {
     switch (kind) {
     case GeGpuBackendKind::Software: return "software";
     case GeGpuBackendKind::DirectX12: return "directx12";
+    case GeGpuBackendKind::Vulkan: return "vulkan";
     }
     return "unknown";
 }
@@ -5483,6 +5484,7 @@ const char *ge_gpu_backend_name(GeGpuBackendKind kind) noexcept {
 // Video Options (PC.Shadows / PC.Bloom / PC.SmoothFog): the same switches the
 // environment sets at start-up, applied between frames.
 void ge_gpu_backend_set_shadows(bool enabled) noexcept {
+#ifdef _WIN32
     ShadowSettings &settings = mutable_shadow_settings();
     settings.enabled = enabled;
     Dx12GeState &s = state();
@@ -5495,14 +5497,21 @@ void ge_gpu_backend_set_shadows(bool enabled) noexcept {
         }
     }
     if (!enabled) s.shadow_ready = false;
+#else
+    (void)enabled;
+#endif
 }
 void ge_gpu_backend_set_bloom(bool enabled) noexcept {
+#ifdef _WIN32
     mutable_bloom_settings().enabled = enabled;
     Dx12GeState &s = state();
     if (enabled && s.device != nullptr && !s.post_ready) {
         std::string error;
         if (!create_post_pipelines(s, error)) std::cerr << "[asura-post] bloom unavailable: " << error << "\n";
     }
+#else
+    (void)enabled;
+#endif
 }
 void ge_gpu_backend_set_smooth_fog(bool enabled) noexcept { g_smooth_fog = enabled; }
 } // namespace vcs

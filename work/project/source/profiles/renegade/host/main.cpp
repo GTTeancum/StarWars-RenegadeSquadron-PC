@@ -46,6 +46,10 @@ std::filesystem::path executable_directory(const char* argv0) {
     std::wstring buffer(32768u,L'\0');
     const DWORD length=GetModuleFileNameW(nullptr,buffer.data(),static_cast<DWORD>(buffer.size()));
     if(length && length<buffer.size()) { buffer.resize(length); return std::filesystem::path(buffer).parent_path(); }
+#elif defined(__linux__)
+    std::error_code error;
+    const auto executable=std::filesystem::canonical("/proc/self/exe",error);
+    if(!error)return executable.parent_path();
 #endif
     return std::filesystem::absolute(argv0).parent_path();
 }

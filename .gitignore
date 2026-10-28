@@ -23,6 +23,9 @@ work/*
 !work/*.cmd
 !work/*.ps1
 !work/*.py
+!work/build-linux.sh
+!work/run-linux.sh
+!work/smoke-linux.sh
 !work/test-texture-browser095.cjs
 !work/*.txt
 !work/*.json

@@ -7,7 +7,11 @@
 #include <fstream>
 #include <iostream>
 #include <stdexcept>
+#ifdef _WIN32
 #include <windows.h>
+#else
+#include <SDL2/SDL.h>
+#endif
 namespace {
 void check(bool ok, const char *message) {
   if (!ok)
@@ -48,7 +52,11 @@ int main(int argc, char **argv) {
     std::ofstream(dir / "VulkanTest.ini")
         << "[Rendering]\nBackend=Vulkan\nInternalResolutionMode=PSP\nMSAA="
         << (argc > 1 ? argv[1] : "4") << "\n";
+#ifdef _WIN32
     _putenv_s("PSPRECOMP_CONFIG", (dir / "VulkanTest.ini").string().c_str());
+#else
+    setenv("PSPRECOMP_CONFIG", (dir / "VulkanTest.ini").string().c_str(), 1);
+#endif
     vcs::initialize_vcs_configuration(dir);
     std::string error;
     check(vcs::initialize_ge_gpu_backend(error), error.c_str());
@@ -57,11 +65,21 @@ int main(int argc, char **argv) {
     std::cout << "Adapter: " << vcs::ge_gpu_backend_report().message << '\n';
     // This is an invisible window owned by this test process. It receives no
     // input and is never shown or activated; it only supplies a Vulkan surface.
+#ifdef _WIN32
     HWND hidden = nullptr;
+#else
+    SDL_Window *hidden = nullptr;
+#endif
     if (argc > 2 && std::string(argv[2]) == "present") {
+#ifdef _WIN32
       hidden = CreateWindowExW(0, L"STATIC", L"Renegade Vulkan surface test",
                                WS_OVERLAPPEDWINDOW, 0, 0, 800, 600, nullptr,
                                nullptr, GetModuleHandleW(nullptr), nullptr);
+#else
+      check(SDL_Init(SDL_INIT_VIDEO) == 0, SDL_GetError());
+      hidden = SDL_CreateWindow("Renegade Vulkan surface test", 0, 0, 800, 600,
+                                SDL_WINDOW_HIDDEN | SDL_WINDOW_VULKAN);
+#endif
       check(hidden != nullptr, "Create test surface window");
       vcs::ge_gpu_backend_set_native_window(hidden);
       check(vcs::ge_gpu_backend_presents_directly(),
@@ -245,14 +263,18 @@ int main(int argc, char **argv) {
     pixel(140, 245, 0xffffffff);
     if (hidden) {
       vcs::ge_gpu_backend_set_native_window(nullptr);
+#ifdef _WIN32
       DestroyWindow(hidden);
+#else
+      SDL_DestroyWindow(hidden);
+      SDL_Quit();
+#endif
     }
     // Release all backend resources before process exit.
     vcs::shutdown_ge_gpu_backend();
     std::cout << "PASS: native Vulkan pixels, depth, scissor, textures, alpha "
                  "discard, fog, blending, texture replacement, framebuffer "
-                 "feedback, stencil, indexed transforms; no window or "
-                 "game assets used.\n";
+                 "feedback, stencil, indexed transforms; no game assets used.\n";
     return 0;
   } catch (const std::exception &e) {
     std::cerr << "FAIL: " << e.what() << '\n';

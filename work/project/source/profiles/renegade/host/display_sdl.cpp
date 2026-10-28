@@ -611,14 +611,20 @@ void display_window_start(){if(!display_window_enabled() || window)return;
   const char* direct_setting=std::getenv("RENEGADE_DIRECT_PRESENT");
   direct_present=ge_gpu_backend_active() && !(direct_setting && std::strcmp(direct_setting,"0")==0);
   const int toolbar=direct_present?0:ui::toolbar_height;
-  window=SDL_CreateWindow("Renegade Squadron",SDL_WINDOWPOS_UNDEFINED,SDL_WINDOWPOS_UNDEFINED,res.width,res.height+toolbar,SDL_WINDOW_RESIZABLE|SDL_WINDOW_ALLOW_HIGHDPI);
+  Uint32 window_flags=SDL_WINDOW_RESIZABLE|SDL_WINDOW_ALLOW_HIGHDPI;
+#if !defined(_WIN32)
+  if(direct_present)window_flags|=SDL_WINDOW_VULKAN;
+#endif
+  window=SDL_CreateWindow("Renegade Squadron",SDL_WINDOWPOS_UNDEFINED,SDL_WINDOWPOS_UNDEFINED,res.width,res.height+toolbar,window_flags);
   if(!window)throw psprecomp::Error(std::string("SDL window: ")+SDL_GetError());
   SDL_SetWindowMinimumSize(window,480,272+toolbar);
   if(direct_present) {
+#if defined(_WIN32)
    SDL_SysWMinfo info;SDL_VERSION(&info.version);
    if(!SDL_GetWindowWMInfo(window,&info))throw psprecomp::Error(std::string("SDL window handle: ")+SDL_GetError());
-#if defined(_WIN32)
    ge_gpu_backend_set_native_window(info.info.win.window);
+#else
+   ge_gpu_backend_set_native_window(window);
 #endif
    focused=(SDL_GetWindowFlags(window)&SDL_WINDOW_INPUT_FOCUS)!=0;closed=false;menu_open=false;hover=choice;clear_input();
    for(int i=0;i<SDL_NumJoysticks();++i)if(SDL_IsGameController(i)){pad=SDL_GameControllerOpen(i);if(pad)break;}
