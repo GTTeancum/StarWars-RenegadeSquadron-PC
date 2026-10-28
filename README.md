@@ -10,8 +10,9 @@ The game's disc data is not included. You need your own copy of the game.
 ## Download
 
 Windows builds are on the [Releases](https://github.com/GTTeancum/StarWars-RenegadeSquadron-PC/releases) page.
-Extract the zip, put the `PSP_GAME` folder from your extracted US disc (ULUS10292) in its `data` folder,
-and run `RenegadeSquadron.exe`. The HD texture pack is a separate download from the same release;
+Extract the zip and put your US disc ISO (ULUS10292) beside `RenegadeSquadron.exe`.
+The first launch extracts it automatically. Alternatively, put an already extracted `PSP_GAME`
+folder in `data`. Run `RenegadeSquadron.exe`. The optional HD texture pack remains on the 0.9b release;
 extract it into `mods\textures`.
 
 ![Echo Base](docs/screenshots/echo-base.png)
@@ -28,7 +29,7 @@ Playable, with known issues.
 - Boots through the menus into ground and space battles. Captures from recorded play cover 11 maps,
   including space battles.
 - Historical DirectX 12 measurement: runs at about 58 frames per second at 1280×720 on a Ryzen 7 8745HS with Radeon 780M graphics.
-- DirectX 12 rendering with 4× MSAA, presented directly to the window.
+- Native Vulkan rendering by default, with 4× MSAA where supported; DirectX 12 remains selectable.
 - Game frame rate raised from the PSP's 20 fps to 60 fps.
 - The original DirectX 12 path supports per-pixel lighting, sun shadows and bloom. The initial Vulkan path uses original GE vertex lighting; enhanced normal maps, sun shadows and bloom are not yet implemented.
 - Texture replacement packs, including normal maps (see [OVERRIDES.md](OVERRIDES.md) and
