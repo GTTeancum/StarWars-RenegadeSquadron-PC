@@ -1,0 +1,2 @@
+# WSL/Linux shell scripts must remain executable as text after Windows checkout.
+*.sh text eol=lf
