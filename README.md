@@ -1,5 +1,8 @@
 # Star Wars Battlefront: Renegade Squadron — PC
 
+> [!IMPORTANT]
+> **Support has ended for this PC port.** No further updates, bug fixes, or technical support are planned. Existing releases remain available.
+
 A native Windows port of the PSP game *Star Wars Battlefront: Renegade Squadron* (ULUS10292), made by
 **static recompilation**: the game's PSP program is translated into C++ and compiled into a regular
 Windows executable. There is no emulator. A native host layer replaces the PSP system services, and
