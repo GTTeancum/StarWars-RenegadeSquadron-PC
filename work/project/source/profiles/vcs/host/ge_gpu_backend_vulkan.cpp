@@ -13,6 +13,7 @@
 #include <algorithm>
 #include <bit>
 #include <cmath>
+#include <cstdlib>
 #include <cstring>
 #include <fstream>
 #include <iostream>
@@ -20,7 +21,7 @@
 #include <memory>
 #include <stdexcept>
 #include <tuple>
-#include <vulkan/vulkan.h>
+#include "ge_vulkan_present_mode.hpp"
 
 namespace vcs::vulkan {
 #include "ge_gpu_backend_api.inc"
@@ -58,6 +59,7 @@ namespace {
                                                           DestroySurfaceKHR) X(GetPhysicalDeviceSurfaceSupportKHR) \
                                                           X(GetPhysicalDeviceSurfaceCapabilitiesKHR) X(            \
                                                               GetPhysicalDeviceSurfaceFormatsKHR)                  \
+                                                              X(GetPhysicalDeviceSurfacePresentModesKHR)             \
                                                               X(CreateSwapchainKHR) X(                             \
                                                                   DestroySwapchainKHR)                             \
                                                                   X(GetSwapchainImagesKHR) X(                      \
@@ -146,9 +148,12 @@ struct State {
 #endif
   VkSurfaceKHR surface{};
   VkSwapchainKHR swap{};
-  VkSemaphore acquired{}, finished{};
+  VkSemaphore acquired{};
   unsigned sw{}, sh{};
   std::vector<VkImage> swap_images;
+  // Presentation can still own the signal semaphore until its image is
+  // reacquired; the single acquire semaphore is consumed by the GPU submit.
+  std::vector<VkSemaphore> swap_finished;
   std::vector<std::byte> pixels, last_texture;
   GeGpuBackendReport report;
   VkPhysicalDeviceMemoryProperties memory{};
@@ -647,6 +652,10 @@ void destroy_swap() {
     vkDestroySwapchainKHR(s.device, s.swap, nullptr);
   s.swap = {};
   s.swap_images.clear();
+  for (auto semaphore : s.swap_finished)
+    if (semaphore)
+      vkDestroySemaphore(s.device, semaphore, nullptr);
+  s.swap_finished.clear();
   s.sw = s.sh = 0;
 }
 std::pair<unsigned, unsigned> window_size() {
@@ -705,15 +714,53 @@ void ensure_swap() {
   for (unsigned bit = 1; !(caps.supportedCompositeAlpha & ci.compositeAlpha);
        bit <<= 1)
     ci.compositeAlpha = VkCompositeAlphaFlagBitsKHR(bit);
-  ci.presentMode = VK_PRESENT_MODE_FIFO_KHR;
+  const char *experiment = std::getenv("PSPRECOMP_VULKAN_LOW_LATENCY_PRESENT");
+  const bool low_latency = experiment && std::strcmp(experiment, "1") == 0;
+  std::vector<VkPresentModeKHR> present_modes;
+  if (low_latency) {
+    // Keep FIFO if the optional enumeration fails or is incomplete.
+    std::uint32_t mode_count = 0;
+    if (vkGetPhysicalDeviceSurfacePresentModesKHR &&
+        vkGetPhysicalDeviceSurfacePresentModesKHR(s.gpu, s.surface, &mode_count,
+                                                   nullptr) == VK_SUCCESS &&
+        mode_count != 0) {
+      present_modes.resize(mode_count);
+      if (vkGetPhysicalDeviceSurfacePresentModesKHR(
+              s.gpu, s.surface, &mode_count, present_modes.data()) == VK_SUCCESS)
+        present_modes.resize(mode_count);
+      else
+        present_modes.clear();
+    }
+  }
+  ci.presentMode = choose_present_mode(low_latency, present_modes);
   ci.clipped = VK_TRUE;
-  VK_CHECK(vkCreateSwapchainKHR(s.device, &ci, nullptr, &s.swap));
+  VkSwapchainKHR swap{};
+  auto creation = vkCreateSwapchainKHR(s.device, &ci, nullptr, &swap);
+  if (creation != VK_SUCCESS && ci.presentMode != VK_PRESENT_MODE_FIFO_KHR &&
+      creation != VK_ERROR_SURFACE_LOST_KHR && creation != VK_ERROR_DEVICE_LOST) {
+    std::cerr << "[vulkan-present] " << present_mode_name(ci.presentMode)
+              << " unavailable (VkResult " << creation << "); trying fifo\n";
+    ci.presentMode = VK_PRESENT_MODE_FIFO_KHR;
+    swap = {};
+    creation = vkCreateSwapchainKHR(s.device, &ci, nullptr, &swap);
+  }
+  check(creation, "vkCreateSwapchainKHR");
+  s.swap = swap;
   s.sw = ci.imageExtent.width;
   s.sh = ci.imageExtent.height;
+  if (low_latency)
+    std::cerr << "[vulkan-present] mode=" << present_mode_name(ci.presentMode)
+              << " internal=" << s.width << 'x' << s.height
+              << " output=" << s.sw << 'x' << s.sh << '\n';
   VK_CHECK(vkGetSwapchainImagesKHR(s.device, s.swap, &count, nullptr));
   s.swap_images.resize(count);
   VK_CHECK(
       vkGetSwapchainImagesKHR(s.device, s.swap, &count, s.swap_images.data()));
+  s.swap_images.resize(count);
+  s.swap_finished.resize(count);
+  VkSemaphoreCreateInfo sem{VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO};
+  for (auto &finished : s.swap_finished)
+    VK_CHECK(vkCreateSemaphore(s.device, &sem, nullptr, &finished));
 }
 void present(Target &t) {
   auto [client_width, client_height] = window_size();
@@ -762,12 +809,12 @@ void present(Target &t) {
   si.commandBufferCount = 1;
   si.pCommandBuffers = &s.cmd;
   si.signalSemaphoreCount = 1;
-  si.pSignalSemaphores = &s.finished;
+  si.pSignalSemaphores = &s.swap_finished[index];
   VK_CHECK(vkQueueSubmit(s.queue, 1, &si, VK_NULL_HANDLE));
   s.recording = false;
   VkPresentInfoKHR pi{VK_STRUCTURE_TYPE_PRESENT_INFO_KHR};
   pi.waitSemaphoreCount = 1;
-  pi.pWaitSemaphores = &s.finished;
+  pi.pWaitSemaphores = &s.swap_finished[index];
   pi.swapchainCount = 1;
   pi.pSwapchains = &s.swap;
   pi.pImageIndices = &index;
@@ -981,7 +1028,6 @@ void initialize() {
   upload(s.white, white, 1, 1, 1, std::vector<std::byte>(4, std::byte{255}));
   VkSemaphoreCreateInfo sem{VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO};
   VK_CHECK(vkCreateSemaphore(s.device, &sem, nullptr, &s.acquired));
-  VK_CHECK(vkCreateSemaphore(s.device, &sem, nullptr, &s.finished));
   s.enabled = true;
   s.report.active = GeGpuBackendKind::Vulkan;
   s.report.requested = GeGpuBackendKind::Vulkan;
@@ -1148,8 +1194,6 @@ void shutdown_ge_gpu_backend() noexcept {
     destroy(s.readback);
     if (s.acquired)
       vkDestroySemaphore(s.device, s.acquired, nullptr);
-    if (s.finished)
-      vkDestroySemaphore(s.device, s.finished, nullptr);
     if (s.vs)
       vkDestroyShaderModule(s.device, s.vs, nullptr);
     if (s.ps)

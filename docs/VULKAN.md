@@ -27,3 +27,33 @@ Interactive presentation, controllers and audible audio require testing the play
 The final Windows build was checked on an AMD Radeon 780M with Vulkan at 1280x720 and 4x MSAA. Bounded headless game runs rendered the startup movies, title screen, profile/difficulty selection and Instant Action setup. Native frame captures were inspected. At recorded vblank 1400, the Vulkan and DirectX 12 difficulty-menu RGB captures were identical pixel-for-pixel. A texture-cache regression was fixed and tested: an omitted per-frame checksum now reuses a previously validated image instead of uploading it again.
 
 The packaged no-console player also passed a bounded no-argument launch and selected Vulkan by default. Full gameplay, visible-window behavior, audible audio and physical controller use remain for interactive testing. The automated audio sink was a dummy device, so audio sample production is not an audible-audio acceptance claim.
+
+### Experimental presentation mode (issue #3)
+
+This opt-in experiment tests whether waiting for the Vulkan display refresh
+contributes to slow motion. It prefers mailbox presentation when supported,
+then immediate (which may tear), and otherwise keeps the original FIFO mode.
+It does not change game timing, the internal render resolution, MSAA, or the
+DirectX 12 backend. The default is unchanged.
+
+From Command Prompt in an existing install with a player built from this patch:
+
+```bat
+set "PSPRECOMP_REALTIME_SPEED_DIAG=1"
+set "PSPRECOMP_FRAME_TIME_DIAG=1"
+set "PSPRECOMP_VULKAN_LOW_LATENCY_PRESENT=0"
+start /wait "" RenegadeSquadron.exe
+copy /y RenegadeSquadron.log baseline-fifo.log
+set "PSPRECOMP_VULKAN_LOW_LATENCY_PRESENT=1"
+start /wait "" RenegadeSquadron.exe
+copy /y RenegadeSquadron.log experimental-present.log
+```
+
+Play the same Instant Action map with the same output mode, internal render
+target, MSAA, and frame-rate cap in both runs. Compare steady gameplay after
+loading, not the resize or loading itself. In the experimental log,
+`[vulkan-present] mode=mailbox` or `mode=immediate` confirms a different
+presentation mode; `mode=fifo` means the fallback was used and this comparison
+cannot test the hypothesis. Compare `[realtime-speed]` samples and whether
+menu audio jitter persists. To revert, launch normally or set
+`PSPRECOMP_VULKAN_LOW_LATENCY_PRESENT=0`.

@@ -1,4 +1,5 @@
 #include "ge_gpu_backend.hpp"
+#include "ge_vulkan_present_mode.hpp"
 #include "vcs_config.hpp"
 #include <array>
 #include <cstdlib>
@@ -13,6 +14,19 @@
 #include <SDL2/SDL.h>
 #endif
 namespace {
+using vcs::vulkan::choose_present_mode;
+constexpr VkPresentModeKHR all_modes[] = {
+    VK_PRESENT_MODE_FIFO_KHR, VK_PRESENT_MODE_IMMEDIATE_KHR,
+    VK_PRESENT_MODE_MAILBOX_KHR};
+constexpr VkPresentModeKHR immediate_modes[] = {
+    VK_PRESENT_MODE_FIFO_KHR, VK_PRESENT_MODE_IMMEDIATE_KHR};
+constexpr VkPresentModeKHR fifo_modes[] = {
+    VK_PRESENT_MODE_FIFO_KHR, VK_PRESENT_MODE_FIFO_RELAXED_KHR};
+static_assert(choose_present_mode(false, all_modes) == VK_PRESENT_MODE_FIFO_KHR);
+static_assert(choose_present_mode(true, all_modes) == VK_PRESENT_MODE_MAILBOX_KHR);
+static_assert(choose_present_mode(true, immediate_modes) == VK_PRESENT_MODE_IMMEDIATE_KHR);
+static_assert(choose_present_mode(true, fifo_modes) == VK_PRESENT_MODE_FIFO_KHR);
+static_assert(choose_present_mode(true, {}) == VK_PRESENT_MODE_FIFO_KHR);
 void check(bool ok, const char *message) {
   if (!ok)
     throw std::runtime_error(message);
