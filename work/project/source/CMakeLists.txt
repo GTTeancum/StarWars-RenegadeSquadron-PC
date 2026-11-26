@@ -147,6 +147,7 @@ if(PSPRECOMP_BUILD_VULKAN_TESTS)
         ${RENEGADE_GPU_HOST}/vcs_config.cpp
         ${RENEGADE_GPU_HOST}/vcs_runtime_log.cpp
         ${RENEGADE_GPU_HOST}/vcs_hdr_post_dx12_stub.cpp)
+    add_dependencies(renegade_vulkan_tests renegade_vulkan_shaders)
     target_include_directories(renegade_vulkan_tests PRIVATE ${RENEGADE_GPU_HOST} ${RENEGADE_VULKAN_HEADERS} ${RENEGADE_VULKAN_GENERATED})
     target_compile_definitions(renegade_vulkan_tests PRIVATE NOMINMAX WIN32_LEAN_AND_MEAN)
     if(WIN32)
@@ -161,5 +162,10 @@ if(PSPRECOMP_BUILD_VULKAN_TESTS)
     add_test(NAME renegade_vulkan_tests COMMAND renegade_vulkan_tests 4)
     add_test(NAME renegade_vulkan_tests_single_sample COMMAND renegade_vulkan_tests 1)
     add_test(NAME renegade_vulkan_tests_presentation COMMAND renegade_vulkan_tests 4 present)
-    set_tests_properties(renegade_vulkan_tests renegade_vulkan_tests_single_sample renegade_vulkan_tests_presentation PROPERTIES RUN_SERIAL TRUE)
+    add_test(NAME renegade_vulkan_tests_low_latency_present COMMAND renegade_vulkan_tests 4 present)
+    set_tests_properties(renegade_vulkan_tests_low_latency_present PROPERTIES
+        ENVIRONMENT "PSPRECOMP_VULKAN_LOW_LATENCY_PRESENT=1")
+    set_tests_properties(renegade_vulkan_tests renegade_vulkan_tests_single_sample
+        renegade_vulkan_tests_presentation renegade_vulkan_tests_low_latency_present
+        PROPERTIES RUN_SERIAL TRUE)
 endif()

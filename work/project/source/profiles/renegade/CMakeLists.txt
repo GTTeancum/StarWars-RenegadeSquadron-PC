@@ -66,6 +66,7 @@ foreach(name framebuffer_capture vcs_config vcs_camera_input
   list(APPEND SERVICES "${VENDOR_HOST}/${name}.cpp")
 endforeach()
 add_library(renegade_services STATIC ${SERVICES} ${RENEGADE_VULKAN_SOURCES})
+add_dependencies(renegade_services renegade_vulkan_shaders)
 target_include_directories(renegade_services PRIVATE ${RENEGADE_VULKAN_HEADERS} ${RENEGADE_VULKAN_GENERATED})
 target_sources(renegade_services PRIVATE host/override_texture.cpp)
 target_sources(renegade_services PRIVATE host/override_msh.cpp host/override_store.cpp host/override_model.cpp host/override_world.cpp host/override_skin.cpp host/override_resource_registry.cpp host/override_commands.cpp)
